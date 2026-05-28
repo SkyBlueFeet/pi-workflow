@@ -1,0 +1,9 @@
+{
+  "id": "end",
+  "executor": { "type": "return" },
+  "dependsOn": ["review"],
+  "inputs": {
+    "result": { "from": "context", "path": "reviewResult" }
+  },
+  "output": { "to": "final", "mergeStrategy": "replace" }
+}

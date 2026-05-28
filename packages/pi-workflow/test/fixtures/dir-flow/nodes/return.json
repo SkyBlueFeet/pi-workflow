@@ -1,0 +1,9 @@
+{
+  "id": "finish",
+  "title": "Finish",
+  "executor": { "type": "return" },
+  "dependsOn": ["start"],
+  "inputs": {
+    "final": { "from": "context", "path": "result" }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "collect",
+  "title": "Collect Input",
+  "executor": { "type": "manual" },
+  "inputs": {
+    "text": { "from": "literal", "value": "draft" }
+  },
+  "output": { "to": "draft", "mergeStrategy": "replace" }
+}

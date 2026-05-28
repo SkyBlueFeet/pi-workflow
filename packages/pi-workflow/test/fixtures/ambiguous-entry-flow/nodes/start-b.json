@@ -1,0 +1,7 @@
+{
+  "id": "start-b",
+  "executor": { "type": "manual" },
+  "inputs": {
+    "value": { "from": "literal", "value": "b" }
+  }
+}

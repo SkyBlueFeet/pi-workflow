@@ -1,0 +1,6 @@
+{
+  "id": "collect",
+  "inputs": {
+    "value": { "from": "literal", "value": "data" }
+  }
+}

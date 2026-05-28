@@ -1,0 +1,29 @@
+{
+  "id": "nested-flow",
+  "version": "1.0",
+  "title": "Nested Sub-workflow",
+  "entry": "start",
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "executor": { "type": "manual" },
+      "inputs": { "v": { "from": "literal", "value": "begin" } },
+      "output": { "to": "data", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "inner-workflow",
+      "title": "Inner Workflow",
+      "executor": { "type": "workflow" },
+      "subWorkflowDir": "stages/inner",
+      "dependsOn": ["start"]
+    },
+    {
+      "id": "end",
+      "title": "End",
+      "executor": { "type": "return" },
+      "dependsOn": ["inner-workflow"],
+      "output": { "to": "final", "mergeStrategy": "replace" }
+    }
+  ]
+}

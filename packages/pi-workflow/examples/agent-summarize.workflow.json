@@ -1,0 +1,39 @@
+{
+  "id": "agent-summarize",
+  "version": "1",
+  "title": "Agent Summarize",
+  "entry": "summarize",
+  "nodes": [
+    {
+      "id": "summarize",
+      "title": "AI Summarizer",
+      "executor": {
+        "type": "agent"
+      },
+      "inputs": {
+        "model": { "from": "literal", "value": "deepseek/deepseek-v4-flash" },
+        "system_prompt": { "from": "literal", "value": "You are a helpful assistant." },
+        "user_prompt": {
+          "from": "run.input",
+          "path": "text"
+        }
+      },
+      "output": {
+        "to": "summary",
+        "mergeStrategy": "replace"
+      }
+    },
+    {
+      "id": "output",
+      "title": "Return Result",
+      "executor": {
+        "type": "return"
+      },
+      "dependsOn": ["summarize"],
+      "output": {
+        "to": "final",
+        "mergeStrategy": "replace"
+      }
+    }
+  ]
+}

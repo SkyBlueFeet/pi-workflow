@@ -1,0 +1,12 @@
+{
+  "defaults": {
+    "control": {
+      "retry": { "maxAttempts": 4, "backoff": "exponential" }
+    },
+    "missingInput": { "mode": "fail" }
+  },
+  "nodeFiles": [
+    "nodes/analyze.json",
+    "nodes/finish.json"
+  ]
+}

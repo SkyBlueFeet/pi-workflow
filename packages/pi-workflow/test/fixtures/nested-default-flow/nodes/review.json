@@ -1,0 +1,6 @@
+{
+  "id": "review",
+  "executor": { "type": "workflow" },
+  "subWorkflowDir": "stages/review-subflow",
+  "dependsOn": ["start"]
+}

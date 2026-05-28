@@ -1,0 +1,14 @@
+{
+  "$schema": "urn:pi-workflow:dsl:v2",
+  "id": "invalid-schema-flow",
+  "version": "1.0",
+  "title": "Invalid Schema Flow",
+  "entry": "done",
+  "nodes": [
+    {
+      "id": "done",
+      "title": "Done",
+      "executor": { "type": "return" }
+    }
+  ]
+}

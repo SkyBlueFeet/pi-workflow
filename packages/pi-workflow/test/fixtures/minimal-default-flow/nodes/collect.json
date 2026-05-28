@@ -1,0 +1,7 @@
+{
+  "id": "collect",
+  "inputs": {
+    "value": { "from": "literal", "value": "data" }
+  },
+  "output": { "to": "collected", "mergeStrategy": "replace" }
+}

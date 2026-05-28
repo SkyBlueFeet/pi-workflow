@@ -1,0 +1,15 @@
+{
+  "id": "manual-artifact",
+  "version": "1.0",
+  "title": "Manual Artifact Workflow",
+  "entry": "collect",
+  "nodes": [
+    {
+      "id": "collect",
+      "title": "Collect Data",
+      "executor": { "type": "manual" },
+      "inputs": { "value": { "from": "literal", "value": "data" } },
+      "output": { "to": "collected", "mergeStrategy": "replace" }
+    }
+  ]
+}

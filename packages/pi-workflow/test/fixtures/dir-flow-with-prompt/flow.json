@@ -1,0 +1,23 @@
+{
+  "id": "prompt-flow",
+  "version": "1.0",
+  "title": "Prompt File Workflow",
+  "entry": "agent-step",
+  "nodes": [
+    {
+      "id": "agent-step",
+      "title": "Agent with Prompt File",
+      "executor": {
+        "type": "agent",
+        "promptFile": "./prompts/system.md"
+      },
+      "output": { "to": "result", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "done",
+      "title": "Done",
+      "executor": { "type": "return" },
+      "dependsOn": ["agent-step"]
+    }
+  ]
+}

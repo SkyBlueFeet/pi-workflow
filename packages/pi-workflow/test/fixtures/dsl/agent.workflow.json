@@ -1,0 +1,36 @@
+{
+  "id": "agent-workflow",
+  "version": "1.0",
+  "title": "Agent Workflow with Skills and Tools",
+  "entry": "analyze",
+  "nodes": [
+    {
+      "id": "analyze",
+      "title": "Analyze with Skills",
+      "executor": {
+        "type": "agent",
+        "skillId": "text-generator"
+      },
+      "inputs": {
+        "system_prompt": { "from": "literal", "value": "You are a data analyst." },
+        "user_prompt": { "from": "literal", "value": "Analyze this data and provide insights." },
+        "model": { "from": "literal", "value": "gpt-4" },
+        "temperature": { "from": "literal", "value": 0.3 }
+      },
+      "capabilities": {
+        "skills": [
+          { "name": "data-analysis", "source": "@pi/data", "params": { "depth": "detailed" } },
+          { "name": "chart-generation", "source": "@pi/charts" }
+        ],
+        "tools": [
+          { "name": "calculate", "source": "@pi/math", "description": "Calculate expressions" },
+          { "name": "search", "description": "Search the knowledge base" }
+        ],
+        "mcp": [
+          { "server": "npx @modelcontextprotocol/server-filesystem", "args": ["/data"] }
+        ]
+      },
+      "output": { "to": "analysisResult", "mergeStrategy": "replace", "artifactType": "analysis" }
+    }
+  ]
+}

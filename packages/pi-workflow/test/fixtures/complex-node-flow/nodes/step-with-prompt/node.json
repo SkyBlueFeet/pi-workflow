@@ -1,0 +1,7 @@
+{
+  "id": "step-with-prompt",
+  "title": "Step with Prompt",
+  "executor": { "type": "manual", "promptFile": "prompts/system.md" },
+  "dependsOn": ["start"],
+  "output": { "to": "stepResult", "mergeStrategy": "replace" }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "pause-resume",
+  "version": "1.0",
+  "title": "Pause Resume Test",
+  "entry": "step",
+  "nodes": [
+    {
+      "id": "step",
+      "title": "Needs Input",
+      "executor": { "type": "manual" },
+      "missingInput": { "mode": "ask_user" }
+    }
+  ]
+}

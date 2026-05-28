@@ -1,0 +1,15 @@
+{
+  "id": "minimal-default-flow",
+  "defaults": {
+    "executor": { "type": "manual" },
+    "control": {
+      "timeoutMs": 5000,
+      "retry": { "maxAttempts": 2, "delayMs": 10 }
+    },
+    "missingInput": { "mode": "fail" }
+  },
+  "nodeFiles": [
+    "nodes/collect.json",
+    "nodes/finish.json"
+  ]
+}

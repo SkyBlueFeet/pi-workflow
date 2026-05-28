@@ -1,0 +1,19 @@
+{
+  "$schema": "urn:pi-workflow:dsl:v1",
+  "id": "dir-flow",
+  "version": "1.0",
+  "title": "Directory-based Workflow",
+  "entry": "start",
+  "nodeFiles": ["nodes/return.json"],
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "executor": { "type": "manual" },
+      "inputs": {
+        "msg": { "from": "literal", "value": "hello" }
+      },
+      "output": { "to": "result", "mergeStrategy": "replace" }
+    }
+  ]
+}

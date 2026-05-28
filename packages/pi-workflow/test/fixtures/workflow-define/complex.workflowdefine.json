@@ -1,0 +1,77 @@
+{
+  "id": "wfdefine-complex",
+  "version": "1.0",
+  "title": "WorkflowDefine Complex",
+  "startAt": "start",
+  "steps": [
+    {
+      "id": "start",
+      "type": "manual",
+      "title": "Start",
+      "inputs": {
+        "value": "begin"
+      },
+      "output": {
+        "to": "seed",
+        "mergeStrategy": "replace"
+      },
+      "next": "review-flow",
+      "engine": "legacy-engine"
+    },
+    {
+      "id": "review-flow",
+      "type": "workflow",
+      "title": "Review Flow",
+      "subWorkflow": {
+        "id": "inner-review",
+        "version": "1.0",
+        "title": "Inner Review",
+        "startAt": "analyze",
+        "steps": [
+          {
+            "id": "analyze",
+            "type": "manual",
+            "inputs": {
+              "input": "$context.seed"
+            },
+            "output": {
+              "to": "analysis",
+              "mergeStrategy": "replace"
+            },
+            "next": "complete",
+            "pause": true
+          },
+          {
+            "id": "complete",
+            "type": "return",
+            "inputs": {
+              "summary": "$context.analysis"
+            },
+            "output": {
+              "to": "innerResult",
+              "mergeStrategy": "replace"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "legacy-yield",
+      "type": "yield",
+      "title": "Legacy Yield"
+    },
+    {
+      "id": "done",
+      "type": "return",
+      "title": "Done",
+      "dependsOn": ["review-flow"],
+      "inputs": {
+        "result": "$context.innerResult"
+      },
+      "output": {
+        "to": "final",
+        "mergeStrategy": "replace"
+      }
+    }
+  ]
+}

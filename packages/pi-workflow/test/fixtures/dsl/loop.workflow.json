@@ -1,0 +1,27 @@
+{
+  "id": "loop-workflow",
+  "version": "1.0",
+  "title": "Loop Over Items",
+  "entry": "iterate",
+  "nodes": [
+    {
+      "id": "iterate",
+      "title": "Iterate Items",
+      "executor": { "type": "loop" },
+      "children": ["process-item"],
+      "control": {
+        "loopOver": { "from": "literal", "value": ["a", "b", "c"] },
+        "itemName": "item"
+      }
+    },
+    {
+      "id": "process-item",
+      "title": "Process Item",
+      "executor": { "type": "manual" },
+      "inputs": {
+        "current": { "from": "frame.local", "path": "item" }
+      },
+      "dependsOn": ["iterate"]
+    }
+  ]
+}

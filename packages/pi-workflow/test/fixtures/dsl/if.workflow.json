@@ -1,0 +1,24 @@
+{
+  "id": "if-workflow",
+  "version": "1.0",
+  "title": "If Conditional Workflow",
+  "entry": "decide",
+  "nodes": [
+    {
+      "id": "decide",
+      "title": "Check Condition",
+      "executor": { "type": "if" },
+      "children": ["then-step"],
+      "control": {
+        "condition": { "from": "literal", "value": true }
+      }
+    },
+    {
+      "id": "then-step",
+      "title": "Condition Met",
+      "executor": { "type": "manual" },
+      "inputs": { "message": { "from": "literal", "value": "condition passed" } },
+      "dependsOn": ["decide"]
+    }
+  ]
+}

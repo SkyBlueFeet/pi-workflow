@@ -1,0 +1,19 @@
+{
+  "$schema": "urn:pi-workflow:dsl:v1",
+  "id": "bundle-flow",
+  "version": "1.0",
+  "title": "Bundle Test Workflow",
+  "entry": "start",
+  "nodeFiles": ["nodes/return.json"],
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "executor": { "type": "manual" },
+      "inputs": {
+        "msg": { "from": "literal", "value": "hello from bundle" }
+      },
+      "output": { "to": "result", "mergeStrategy": "replace" }
+    }
+  ]
+}

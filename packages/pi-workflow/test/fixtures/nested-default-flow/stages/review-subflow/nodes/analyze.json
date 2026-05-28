@@ -1,0 +1,7 @@
+{
+  "id": "analyze",
+  "inputs": {
+    "value": { "from": "context", "path": "seed" }
+  },
+  "output": { "to": "analysis", "mergeStrategy": "replace" }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "http-workflow",
+  "version": "1.0",
+  "title": "HTTP Workflow",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Fetch Data",
+      "executor": { "type": "http" },
+      "inputs": {
+        "url": { "from": "literal", "value": "https://jsonplaceholder.typicode.com/todos/1" },
+        "method": { "from": "literal", "value": "GET" }
+      }
+    }
+  ]
+}

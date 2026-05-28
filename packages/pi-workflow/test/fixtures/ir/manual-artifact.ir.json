@@ -1,0 +1,19 @@
+{
+  "id": "manual-artifact",
+  "version": "1.0",
+  "title": "Manual Artifact Workflow",
+  "entryNodeIds": ["collect"],
+  "nodes": [
+    {
+      "id": "collect",
+      "title": "Collect Data",
+      "kind": "manual",
+      "dependsOn": [],
+      "inputBindings": {
+        "value": { "from": "literal", "value": "data" }
+      },
+      "output": { "to": "collected", "mergeStrategy": "replace" }
+    }
+  ],
+  "edges": []
+}

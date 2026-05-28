@@ -1,0 +1,36 @@
+{
+  "$schema": "urn:pi-workflow:dsl:v1",
+  "id": "bundle-assets-flow",
+  "version": "1.0",
+  "title": "Bundle With Assets",
+  "entry": "start",
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "executor": { "type": "manual" },
+      "inputs": {
+        "msg": { "from": "literal", "value": "hello with assets" }
+      },
+      "output": { "to": "result", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "finish",
+      "title": "Finish",
+      "executor": { "type": "return" },
+      "dependsOn": ["start"]
+    }
+  ],
+  "resources": [
+    {
+      "path": "assets/logo.png",
+      "usage": "node:start:asset",
+      "strategy": "archive"
+    },
+    {
+      "path": "prompts/system.md",
+      "usage": "node:start:system_prompt",
+      "strategy": "inline"
+    }
+  ]
+}

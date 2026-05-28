@@ -1,0 +1,45 @@
+{
+  "name": "@pi-workflow/extension-loader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Extension loading utilities for Pi Workflow.",
+  "license": "MIT",
+  "author": "skybluefeet <yakun1593@163.com>",
+  "homepage": "https://github.com/SkyBlueFeet/pi-workflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SkyBlueFeet/pi-workflow.git",
+    "directory": "packages/pi-extension-loader"
+  },
+  "bugs": {
+    "url": "https://github.com/SkyBlueFeet/pi-workflow/issues"
+  },
+  "keywords": [
+    "workflow",
+    "extension",
+    "loader"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@pi-workflow/core": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^25.9.1"
+  }
+}

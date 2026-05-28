@@ -1,0 +1,20 @@
+{
+  "id": "subworkflow",
+  "version": "1.0",
+  "title": "Subworkflow Test",
+  "entry": "parent",
+  "nodes": [
+    {
+      "id": "parent",
+      "title": "Parent",
+      "executor": { "type": "workflow" },
+      "children": ["child"]
+    },
+    {
+      "id": "child",
+      "title": "Child",
+      "executor": { "type": "return" },
+      "inputs": { "msg": { "from": "literal", "value": "done" } }
+    }
+  ]
+}

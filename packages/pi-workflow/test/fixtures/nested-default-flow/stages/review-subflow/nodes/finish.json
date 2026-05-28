@@ -1,0 +1,9 @@
+{
+  "id": "finish",
+  "executor": { "type": "return", "config": { "source": "child" } },
+  "dependsOn": ["analyze"],
+  "inputs": {
+    "value": { "from": "context", "path": "analysis" }
+  },
+  "output": { "to": "reviewResult", "mergeStrategy": "replace" }
+}

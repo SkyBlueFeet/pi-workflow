@@ -1,0 +1,9 @@
+{
+  "id": "finish",
+  "executor": { "type": "return" },
+  "dependsOn": ["collect"],
+  "inputs": {
+    "result": { "from": "context", "path": "collected" }
+  },
+  "output": { "to": "final", "mergeStrategy": "replace" }
+}

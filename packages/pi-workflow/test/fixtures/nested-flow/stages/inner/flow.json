@@ -1,0 +1,22 @@
+{
+  "id": "inner",
+  "version": "1.0",
+  "title": "Inner Workflow",
+  "entry": "process",
+  "nodes": [
+    {
+      "id": "process",
+      "title": "Process",
+      "executor": { "type": "manual" },
+      "inputs": { "input": { "from": "context", "path": "data" } },
+      "output": { "to": "processed", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "output",
+      "title": "Output",
+      "executor": { "type": "return" },
+      "dependsOn": ["process"],
+      "output": { "to": "innerResult", "mergeStrategy": "replace" }
+    }
+  ]
+}

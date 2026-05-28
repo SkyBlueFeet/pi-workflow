@@ -1,0 +1,7 @@
+{
+  "id": "ambiguous-entry-flow",
+  "nodeFiles": [
+    "nodes/start-a.json",
+    "nodes/start-b.json"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "subworkflow",
+  "version": "1.0",
+  "title": "Subworkflow Test",
+  "entryNodeIds": ["parent"],
+  "nodes": [
+    {
+      "id": "parent",
+      "title": "Parent",
+      "kind": "workflow",
+      "dependsOn": [],
+      "inputBindings": {},
+      "children": ["child"]
+    },
+    {
+      "id": "child",
+      "title": "Child",
+      "kind": "return",
+      "dependsOn": [],
+      "inputBindings": {
+        "msg": { "from": "literal", "value": "done" }
+      }
+    }
+  ],
+  "edges": []
+}

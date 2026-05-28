@@ -1,0 +1,28 @@
+{
+  "id": "parallel-workflow",
+  "version": "1.0",
+  "title": "Parallel Branches Workflow",
+  "entry": "fork",
+  "nodes": [
+    {
+      "id": "fork",
+      "title": "Fork into Branches",
+      "executor": { "type": "parallel" },
+      "children": ["branch-a", "branch-b"]
+    },
+    {
+      "id": "branch-a",
+      "title": "Branch A",
+      "executor": { "type": "manual" },
+      "inputs": { "value": { "from": "literal", "value": "A" } },
+      "output": { "to": "branchA", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "branch-b",
+      "title": "Branch B",
+      "executor": { "type": "manual" },
+      "inputs": { "value": { "from": "literal", "value": "B" } },
+      "output": { "to": "branchB", "mergeStrategy": "replace" }
+    }
+  ]
+}

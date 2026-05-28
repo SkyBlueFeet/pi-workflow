@@ -1,0 +1,14 @@
+{
+  "id": "minimal-return",
+  "version": "1.0",
+  "title": "Minimal Return Workflow",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Done",
+      "executor": { "type": "return" },
+      "inputs": { "v": { "from": "literal", "value": "ok" } }
+    }
+  ]
+}

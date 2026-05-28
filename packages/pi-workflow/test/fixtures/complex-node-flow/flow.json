@@ -1,0 +1,21 @@
+{
+  "id": "complex-node-flow",
+  "version": "1.0",
+  "title": "Complex Node Directory",
+  "entry": "start",
+  "nodeFiles": ["nodes/step-with-prompt"],
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "executor": { "type": "manual" },
+      "inputs": { "v": { "from": "literal", "value": "go" } }
+    },
+    {
+      "id": "finish",
+      "title": "Finish",
+      "executor": { "type": "return" },
+      "dependsOn": ["step-with-prompt"]
+    }
+  ]
+}

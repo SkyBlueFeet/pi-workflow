@@ -1,0 +1,9 @@
+{
+  "$schema": "urn:pi-workflow:dsl:v1",
+  "id": "simple-review",
+  "version": "1.0",
+  "title": "Simple Review",
+  "entry": "collect",
+  "nodeFiles": ["nodes/collect.json", "nodes/finish.json"],
+  "nodes": []
+}

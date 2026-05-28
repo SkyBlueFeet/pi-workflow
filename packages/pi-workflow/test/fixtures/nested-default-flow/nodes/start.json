@@ -1,0 +1,7 @@
+{
+  "id": "start",
+  "inputs": {
+    "value": { "from": "literal", "value": "seed" }
+  },
+  "output": { "to": "seed", "mergeStrategy": "replace" }
+}

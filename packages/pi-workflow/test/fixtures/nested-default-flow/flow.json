@@ -1,0 +1,13 @@
+{
+  "id": "nested-default-flow",
+  "defaults": {
+    "executor": { "type": "manual", "config": { "source": "root" } },
+    "control": { "timeoutMs": 3000 },
+    "missingInput": { "mode": "skip" }
+  },
+  "nodeFiles": [
+    "nodes/start.json",
+    "nodes/review.json",
+    "nodes/end.json"
+  ]
+}

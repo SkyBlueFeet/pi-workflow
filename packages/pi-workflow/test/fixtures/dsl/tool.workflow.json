@@ -1,0 +1,17 @@
+{
+  "id": "tool-workflow",
+  "version": "1.0",
+  "title": "Tool Workflow",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Call Echo Tool",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "echo" },
+        "params": { "from": "literal", "value": { "message": "hello" } }
+      }
+    }
+  ]
+}

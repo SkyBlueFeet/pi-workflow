@@ -1,0 +1,18 @@
+{
+  "id": "minimal-return",
+  "version": "1.0",
+  "title": "Minimal Return Workflow",
+  "entryNodeIds": ["root"],
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Done",
+      "kind": "return",
+      "dependsOn": [],
+      "inputBindings": {
+        "v": { "from": "literal", "value": "ok" }
+      }
+    }
+  ],
+  "edges": []
+}

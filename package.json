@@ -1,0 +1,42 @@
+{
+  "name": "pi-workflow-monorepo",
+  "version": "1.0.0",
+  "description": "Pi Workflow monorepo for workflow runtime, CLI, adapters, and tooling.",
+  "private": true,
+  "license": "MIT",
+  "author": "skybluefeet <yakun1593@163.com>",
+  "homepage": "https://github.com/SkyBlueFeet/pi-workflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SkyBlueFeet/pi-workflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SkyBlueFeet/pi-workflow/issues"
+  },
+  "workspaces": [
+    "packages/pi-workflow",
+    "packages/pi-package-adapter",
+    "packages/pi-extension-loader",
+    "packages/pi-builtin-tools",
+    "apps/pi-workflow-cli"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint \"packages/*/src/**/*.ts\" \"apps/*/src/**/*.ts\"",
+    "lint:fix": "eslint \"packages/*/src/**/*.ts\" \"apps/*/src/**/*.ts\" --fix",
+    "quality:gate": "npm run lint && npm run test",
+    "quality:check": "node scripts/tools/run-quality-check.mjs",
+    "comment:check": "node scripts/tools/check-comment-rate.mjs --min-rate 8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
+    "typescript-eslint": "^8.60.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

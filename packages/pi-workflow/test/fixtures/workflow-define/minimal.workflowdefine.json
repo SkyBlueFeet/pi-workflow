@@ -1,0 +1,33 @@
+{
+  "id": "wfdefine-minimal",
+  "version": "1.0",
+  "title": "WorkflowDefine Minimal",
+  "startAt": "collect",
+  "steps": [
+    {
+      "id": "collect",
+      "type": "manual",
+      "title": "Collect",
+      "inputs": {
+        "value": "data"
+      },
+      "output": {
+        "to": "collected",
+        "mergeStrategy": "replace"
+      },
+      "next": "finish"
+    },
+    {
+      "id": "finish",
+      "type": "return",
+      "title": "Finish",
+      "inputs": {
+        "result": "$context.collected"
+      },
+      "output": {
+        "to": "final",
+        "mergeStrategy": "replace"
+      }
+    }
+  ]
+}

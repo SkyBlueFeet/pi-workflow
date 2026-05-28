@@ -6,10 +6,10 @@ export type ValueRef =
   | { readonly from: "frame.local"; readonly path?: string }
   | { readonly from: "literal"; readonly value: unknown };
 
-/** 工作流节点类型：agent / workflow / manual / return / tool / http / if / parallel / loop。 */
+/** 工作流节点类型：agent / workflow / manual / return / tool / http / if / parallel / loop / extractor。 */
 export type WorkflowNodeKind =
   | "agent" | "workflow" | "manual" | "return"
-  | "tool" | "http" | "if" | "parallel" | "loop";
+  | "tool" | "http" | "if" | "parallel" | "loop" | "extractor";
 
 /** IR 执行器定义，指定执行类型、关联 skill 及自定义配置。 */
 export interface WorkflowExecutorIR {
@@ -72,6 +72,25 @@ export interface WorkflowControlIR {
   readonly timeoutMs?: number;
   readonly retry?: WorkflowRetryPolicy;
   readonly failStrategy?: "all" | "any";
+}
+
+/** Extractor 节点输入源类型：text / html / code / json。 */
+export type ExtractorSourceType = "text" | "html" | "code" | "json";
+
+/** Extractor 节点处理模式：extract（字段抽取）/ summarize（内容汇总）/ typed-object（对象类型约束输出）。 */
+export type ExtractorMode = "extract" | "summarize" | "typed-object";
+
+/** Extractor 节点配置。 */
+export interface ExtractorConfig {
+  readonly sourceType?: ExtractorSourceType;
+  readonly mode?: ExtractorMode;
+  readonly sourcePath?: string;
+  readonly fields?: readonly string[];
+  readonly schema?: Readonly<Record<string, unknown>>;
+  readonly schemaRequired?: boolean;
+  readonly summaryStyle?: "brief" | "detailed" | "bullet";
+  readonly language?: string;
+  readonly maxInputChars?: number;
 }
 
 /** 缺失输入处理模式：询问用户、失败、跳过的行为决策。 */

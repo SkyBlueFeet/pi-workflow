@@ -8,6 +8,12 @@ import { RuntimeExecutor } from "./runtime-executor.js";
 import { NullWorkflowHost } from "../host/null-host.js";
 import { ExecutorRegistry } from "./executor-registry.js";
 import { UnsupportedExecutor } from "../executors/unsupported-executor.js";
+import { AgentExecutor } from "../executors/agent-executor.js";
+import { ExtractorExecutor } from "../executors/extractor-executor.js";
+import { HttpExecutor } from "../executors/http-executor.js";
+import { ManualExecutor } from "../executors/manual-executor.js";
+import { ReturnExecutor } from "../executors/return-executor.js";
+import { ToolExecutor } from "../executors/tool-executor.js";
 
 /** 工作流运行请求 */
 export interface WorkflowRunRequest {
@@ -59,6 +65,12 @@ export class WorkflowRuntime {
     const host = options.host ?? NullWorkflowHost;
     const executorRegistry = options.executorRegistry ?? (() => {
       const reg = new ExecutorRegistry();
+      reg.register("manual", new ManualExecutor(input => input));
+      reg.register("return", new ReturnExecutor());
+      reg.register("agent", new AgentExecutor());
+      reg.register("tool", new ToolExecutor());
+      reg.register("http", new HttpExecutor());
+      reg.register("extractor", new ExtractorExecutor());
       reg.registerFallback(new UnsupportedExecutor());
       return reg;
     })();

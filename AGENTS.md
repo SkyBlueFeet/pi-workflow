@@ -22,12 +22,13 @@
 
 ## 任务入口
 
-> 当前项目未启用治理配套，按任务直接查阅 developers 根层规范。
+> 任务开始前，必须先读取 `developers/SKILLS/SKILL_ROUTER.md`，再按任务类型进入对应规范与 Skill。
 
 ### 快速路由
 
 | 当前情形 | 立即查阅 |
 |---|---|
+| 开始任何任务（强制） | `developers/SKILLS/SKILL_ROUTER.md` |
 | 浏览开发文档目录 | `developers/INDEX.md` |
 | 控制上下文读取与 token 成本 | `developers/AI-CONTEXT-LOADING.md` |
 | 代码编辑任务（强制遵守语言/场景规范） | `developers/CODE-STYLE.md` + `developers/CODE-STYLES/` 对应语言/场景规范 |
@@ -41,6 +42,7 @@
 
 启动时必读：
 - `AGENTS.md`（本文件）
+- `developers/SKILLS/SKILL_ROUTER.md`
 
 按任务按需读取：
 - `developers/INDEX.md`

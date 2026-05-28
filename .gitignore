@@ -1,7 +1,6 @@
 .codegraph
 node_modules
 dist
-developers
 *.lock.json
 .DS_Store
 .env

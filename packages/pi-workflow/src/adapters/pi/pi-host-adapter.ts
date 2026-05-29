@@ -11,7 +11,8 @@ import type {
   WorkflowInteractionRequest,
   WorkflowInteractionResult,
 } from "./types.js";
-import type { WorkflowToolRefIR } from "../../ir/types.js";
+import type { CustomAgentInvokeRequest } from "../../agents/types.js";
+import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
 
 /** PI 宿主适配器的构造选项。 */
 export interface PiHostAdapterOptions {
@@ -72,46 +73,91 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
   }
 
   async *runAgent(request: WorkflowAgentRequest): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
-    const model = request.model
-      ? this.resolveModel(request.model)
+    const gen = this.executeAgentCore({
+      modelId: request.model,
+      systemPrompt: request.systemPrompt,
+      prompt: request.prompt,
+      skills: request.skills,
+      tools: request.tools,
+      mcp: request.mcp,
+      toolExecutors: request.toolExecutors,
+      initialMessages: request.initialMessages,
+      signal: request.signal,
+    });
+    return yield* gen;
+  }
+
+  async *runNamedAgent(
+    request: CustomAgentInvokeRequest,
+  ): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
+    const gen = this.executeAgentCore({
+      modelId: request.model,
+      systemPrompt: undefined,
+      prompt: request.prompt ?? JSON.stringify(request.input ?? {}),
+      signal: request.signal,
+    });
+    return yield* gen;
+  }
+
+  /**
+   * 共享的 agent 执行核心，供 runAgent 和 runNamedAgent 复用。
+   */
+  private async *executeAgentCore(params: {
+    modelId?: string;
+    systemPrompt?: string;
+    prompt: string;
+    skills?: readonly WorkflowSkillRefIR[];
+    tools?: readonly WorkflowToolRefIR[];
+    mcp?: readonly WorkflowMcpConfigIR[];
+    toolExecutors?: ReadonlyArray<{ name: string; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }>;
+    initialMessages?: ReadonlyArray<{ role: "user" | "assistant"; content: string | readonly { type: "text"; text: string }[] }>;
+    signal?: AbortSignal;
+  }): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
+    const model = params.modelId
+      ? this.resolveModel(params.modelId)
       : (this.options.model ?? this.resolveModel(this.options.defaultModel ?? "openai/gpt-4o-mini"));
 
     if (!model) {
-      yield { type: "agent.error", error: `不支持的模型: ${request.model ?? this.options.defaultModel ?? "openai/gpt-4o-mini"}` };
+      yield { type: "agent.error", error: `不支持的模型: ${params.modelId ?? this.options.defaultModel ?? "openai/gpt-4o-mini"}` };
       return { output: null, content: "" };
     }
 
     const extraExecutors = this.options.extensionTools ?? [];
-    const requestExecutors = request.toolExecutors ?? [];
+    const requestExecutors = params.toolExecutors ?? [];
     const mergedExecutors = [...requestExecutors, ...extraExecutors];
     const executorMap = new Map(mergedExecutors.map(e => [e.name, e.execute]));
 
-    const baseTools = request.tools?.length ? request.tools.map(t => this.toAgentTool(t, executorMap.get(t.name))) : [];
+    const baseTools = params.tools?.length ? params.tools.map(t => this.toAgentTool(t, executorMap.get(t.name))) : [];
     const extraTools = extraExecutors
-      .filter(e => !request.tools?.some(t => t.name === e.name))
+      .filter(e => !params.tools?.some(t => t.name === e.name))
       .map(e => this.toAgentToolDirect(e));
     const agentTools = baseTools.length || extraTools.length ? [...baseTools, ...extraTools] : undefined;
 
-    if (request.skills?.length) {
-      for (const skill of request.skills) {
+    if (params.skills?.length) {
+      for (const skill of params.skills) {
         yield { type: "agent.skill_start", skillName: skill.name };
         yield { type: "agent.skill_end", skillName: skill.name };
       }
     }
 
-    if (request.mcp?.length) {
-      for (const mcp of request.mcp) {
+    if (params.mcp?.length) {
+      for (const mcp of params.mcp) {
         yield { type: "agent.mcp_start", serverName: mcp.server };
         yield { type: "agent.mcp_end", serverName: mcp.server };
       }
     }
 
+    const agentState: Record<string, unknown> = {
+      systemPrompt: params.systemPrompt ?? "You are a helpful assistant.",
+      model,
+      tools: agentTools ?? [],
+    };
+    if (params.initialMessages) {
+      agentState["messages"] = params.initialMessages;
+    }
+
     const agent = new Agent({
-      initialState: {
-        systemPrompt: request.systemPrompt ?? "You are a helpful assistant.",
-        model,
-        tools: agentTools ?? [],
-      },
+      initialState: agentState as any,
     });
 
     const eventQueue: WorkflowHostEvent[] = [];
@@ -142,7 +188,7 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
       }
     });
 
-    agent.prompt(request.prompt).catch((err: unknown) => {
+    agent.prompt(params.prompt).catch((err: unknown) => {
       eventQueue.push({
         type: "agent.error" as const,
         error: err instanceof Error ? err.message : String(err),

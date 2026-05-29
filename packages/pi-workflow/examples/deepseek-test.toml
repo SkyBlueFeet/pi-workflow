@@ -1,0 +1,8 @@
+[model]
+provider = "deepseek"
+model = "deepseek-v4-flash"
+
+[agents.assistant]
+name = "测试助手"
+description = "一个友好的 AI 助手"
+systemPrompt = "你是一个有用的助手，用中文简洁回答。"

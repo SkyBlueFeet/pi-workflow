@@ -19,6 +19,20 @@ describe("MockPiHostAdapter", () => {
 
     expect(content).toBe("Hello from mock agent");
   });
+
+  it("MockPiHostAdapter 支持 runNamedAgent", async () => {
+    const mock = new MockPiHostAdapter();
+    mock.setResponse("writer", "Hello from named agent");
+
+    const gen = mock.runNamedAgent({ agentId: "writer", prompt: "write" });
+
+    let content = "";
+    for await (const event of gen) {
+      if (event.type === "agent.text_delta") content += event.delta;
+    }
+
+    expect(content).toBe("Hello from named agent");
+  });
 });
 
 describe("PiCapabilityCatalogBuilder", () => {

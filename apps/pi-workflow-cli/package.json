@@ -21,7 +21,8 @@
   ],
   "type": "module",
   "bin": {
-    "pi-workflow": "./dist/cli.js"
+    "pi-workflow": "./dist/cli.js",
+    "pi-agent": "./dist/pi-agent-cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -31,10 +32,12 @@
   "dependencies": {
     "@pi-workflow/core": "*",
     "@pi-workflow/extension-loader": "*",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "@types/yargs": "^17.0.35",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0"
   }

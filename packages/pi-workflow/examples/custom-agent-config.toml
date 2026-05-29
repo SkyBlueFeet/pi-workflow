@@ -1,0 +1,21 @@
+[model]
+provider = "openai"
+model = "gpt-4o-mini"
+
+[agents.writer]
+name = "Writer Agent"
+description = "A creative writing assistant that produces polished text"
+systemPrompt = "You are a professional writer with expertise in creative and technical writing. Produce clear, engaging, and well-structured content."
+
+[agents.writer.model]
+provider = "anthropic"
+model = "claude-3-7-sonnet"
+temperature = 0.4
+maxTokens = 4096
+
+[[agents.writer.skills]]
+name = "outline"
+source = "@pi/writing"
+
+[[agents.writer.mcp]]
+server = "ctx7"

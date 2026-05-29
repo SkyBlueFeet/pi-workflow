@@ -57,3 +57,53 @@ export interface ResolvedAgentModelSettings {
   readonly temperature?: number;
   readonly maxTokens?: number;
 }
+
+/** 独立自定义智能体定义，宿主级一等能力对象，不绑定 workflow。 */
+export interface CustomAgentDefinition {
+  readonly id: string;
+  readonly name?: string;
+  readonly description?: string;
+  readonly systemPrompt?: string;
+  readonly model?: ModelConfig;
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+  readonly skills?: readonly WorkflowSkillRefIR[];
+  readonly tools?: readonly WorkflowToolRefIR[];
+  readonly mcp?: readonly WorkflowMcpConfigIR[];
+  readonly permissions?: readonly PermissionGrant[];
+}
+
+/** 独立自定义智能体调用请求。 */
+export interface CustomAgentInvokeRequest {
+  readonly agentId: string;
+  readonly prompt?: string;
+  readonly input?: Readonly<Record<string, unknown>>;
+  readonly model?: string;
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+  readonly signal?: AbortSignal;
+  readonly systemPrompt?: string;
+  readonly skills?: readonly WorkflowSkillRefIR[];
+  readonly tools?: readonly WorkflowToolRefIR[];
+  readonly mcp?: readonly WorkflowMcpConfigIR[];
+  readonly toolExecutors?: ReadonlyArray<{
+    readonly name: string;
+    readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }>;
+  }>;
+  readonly initialMessages?: ReadonlyArray<{
+    readonly role: "user" | "assistant";
+    readonly content: string | readonly { readonly type: "text"; readonly text: string }[];
+  }>;
+}
+
+/** 独立自定义智能体调用结果。 */
+export interface CustomAgentInvokeResult {
+  readonly agentId: string;
+  readonly content: string;
+  readonly output: unknown;
+  readonly model?: string;
+  readonly usage?: {
+    readonly inputTokens?: number;
+    readonly outputTokens?: number;
+  };
+}

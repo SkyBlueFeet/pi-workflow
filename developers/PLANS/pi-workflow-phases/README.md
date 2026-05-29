@@ -1,8 +1,8 @@
 ---
 **版本锚点**
 - 创建时间：2026-05-26 10:00 +08:00
-- 最后更新：2026-05-26 22:50 +08:00
-- 代码快照日期：2026-05-26
+- 最后更新：2026-05-30 01:10 +08:00
+- 代码快照日期：2026-05-30
 
 ---
 
@@ -32,7 +32,7 @@
 - [阶段 7：AI-First Authoring](./PLAN_PHASE-7_AI-FIRST-AUTHORING.md)
 - [阶段 8：调试与可视化](./PLAN_PHASE-8_DEBUG-AND-VISUALIZATION.md)
 - [阶段 9：PI 生态集成 ✅](./PLAN_PHASE-9_PI-ECOSYSTEM-INTEGRATION.md) — 初版交付已通过
-- [阶段 10：自定义智能体系统 ✅](./PLAN_PHASE-10_CUSTOM-AGENT-SYSTEM.md) — 初版交付已通过
+- [阶段 10：自定义智能体系统](./PLAN_PHASE-10_CUSTOM-AGENT-SYSTEM.md) — 已按“基于 PI 的独立自定义智能体”新口径重写，已有部分实现可复用
 - [阶段 11：软件安全策略 ✅](./PLAN_PHASE-11_SOFTWARE-SECURITY-POLICY.md) — 主链路已完成，可继续细化权限 scope 与可视化表现
 - [阶段 12：PWB Bundle 运行态](./PLAN_PHASE-12_PWB-BUNDLE-RUNTIME.md)
 

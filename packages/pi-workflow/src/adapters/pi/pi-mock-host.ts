@@ -7,6 +7,7 @@ import type {
   WorkflowInteractionRequest,
   WorkflowInteractionResult,
 } from "./types.js";
+import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 
 /** 测试用 Mock PI 宿主适配器，返回预设响应而非真实模型调用。 */
 export class MockPiHostAdapter implements WorkflowPiHostCapabilities {
@@ -29,6 +30,12 @@ export class MockPiHostAdapter implements WorkflowPiHostCapabilities {
 
   async *runAgent(request: WorkflowAgentRequest): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
     const content = this.responses.get(request.nodeId) ?? `[Mock] Response to: ${request.prompt}`;
+    yield { type: "agent.text_delta" as const, delta: content };
+    return { output: content, content };
+  }
+
+  async *runNamedAgent(request: CustomAgentInvokeRequest): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
+    const content = this.responses.get(request.agentId) ?? `[Mock] Response to: ${request.prompt}`;
     yield { type: "agent.text_delta" as const, delta: content };
     return { output: content, content };
   }

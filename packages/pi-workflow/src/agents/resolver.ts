@@ -1,8 +1,23 @@
 import type { ValueRef, WorkflowNodeIR } from "../ir/types.js";
 import type { WorkflowConfig } from "../config/types.js";
 import { resolveModelConfig, formatModelString } from "../config/resolver.js";
-import type { AgentDefinition, ResolvedAgentConfig, WorkflowToolDefinition, ResolvedAgentModelSettings } from "./types.js";
-import type { AgentRegistry } from "./registry.js";
+import type { AgentDefinition, CustomAgentDefinition, ResolvedAgentConfig, WorkflowToolDefinition, ResolvedAgentModelSettings } from "./types.js";
+import type { CustomAgentRegistry } from "./registry.js";
+
+/**
+ * 独立解析自定义智能体定义，不绑定 workflow 节点。
+ * 返回直接从 registry 获取的定义，不做 workflow 级合并。
+ *
+ * @param agentId 智能体 ID
+ * @param registry 自定义智能体注册中心
+ * @returns 自定义智能体定义，不存在时返回 undefined
+ */
+export function resolveCustomAgentDefinition(
+  agentId: string,
+  registry: CustomAgentRegistry,
+): CustomAgentDefinition | undefined {
+  return registry.get(agentId);
+}
 
 /**
  * 合并节点、全局配置与 Agent 定义，解析出最终的 Agent 运行配置。
@@ -15,13 +30,14 @@ import type { AgentRegistry } from "./registry.js";
 export function resolveAgentConfig(
   node: WorkflowNodeIR,
   config: WorkflowConfig,
-  registry: AgentRegistry,
+  registry: CustomAgentRegistry,
 ): ResolvedAgentConfig {
   const agentId = node.executor?.config?.agentId as string | undefined;
 
   let agentDef: AgentDefinition | undefined;
   if (agentId) {
-    agentDef = registry.get(agentId);
+    const def = registry.get(agentId);
+    agentDef = def as AgentDefinition | undefined;
   }
 
   const modelConfig = mergeModelConfig(node, config, agentDef);
@@ -43,6 +59,108 @@ export function resolveAgentConfig(
   };
 
   return merged;
+}
+
+/**
+ * Workflow 兼容解析：解析 workflow agent 节点的调用参数，
+ * 从独立智能体定义加载基础配置，再合并节点级覆盖项。
+ *
+ * @param node 工作流节点 IR
+ * @param config 全局工作流配置
+ * @param registry 自定义智能体注册中心
+ * @param nodeInput 节点输入参数
+ * @returns 合并后的运行参数，包含 systemPrompt / userPrompt / model 等
+ */
+export function resolveWorkflowAgentInvocation(
+  node: WorkflowNodeIR,
+  config: WorkflowConfig | undefined,
+  registry: CustomAgentRegistry,
+  nodeInput: Record<string, unknown>,
+): {
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  skills?: readonly import("../ir/types.js").WorkflowSkillRefIR[];
+  tools?: readonly import("../ir/types.js").WorkflowToolRefIR[];
+  mcp?: readonly import("../ir/types.js").WorkflowMcpConfigIR[];
+  permissions?: readonly import("../security/types.js").PermissionGrant[];
+} {
+  const agentId = node.executor?.config?.agentId as string | undefined;
+  const agentDef: AgentDefinition | undefined = agentId
+    ? (registry.get(agentId) as AgentDefinition | undefined)
+    : undefined;
+
+  const modelFromInput = typeof nodeInput["model"] === "string" ? nodeInput["model"] as string : undefined;
+  const modelFromDef = agentDef?.model ? formatModelString(agentDef.model) : undefined;
+  const modelFromConfig = config?.model ? formatModelString(resolveModelConfig(node, config)) : undefined;
+
+  return {
+    systemPrompt: (nodeInput["system_prompt"] as string)
+      ?? (nodeInput["systemPrompt"] as string)
+      ?? agentDef?.systemPrompt
+      ?? "You are a helpful assistant.",
+    userPrompt: (nodeInput["user_prompt"] as string)
+      ?? (nodeInput["userPrompt"] as string)
+      ?? (nodeInput["prompt"] as string)
+      ?? JSON.stringify(nodeInput),
+    model: modelFromInput ?? modelFromDef ?? modelFromConfig,
+    temperature: nodeInput["temperature"] as number | undefined ?? agentDef?.temperature,
+    maxTokens: (nodeInput["max_tokens"] as number | undefined)
+      ?? (nodeInput["maxTokens"] as number | undefined)
+      ?? agentDef?.maxTokens,
+    skills: mergeAgentNodeSkills(agentDef, node),
+    tools: mergeAgentNodeTools(agentDef, node),
+    mcp: mergeAgentNodeMcp(agentDef, node),
+    permissions: agentDef?.permissions,
+  };
+}
+
+function mergeAgentNodeSkills(
+  agentDef: AgentDefinition | undefined,
+  node: WorkflowNodeIR,
+): readonly import("../ir/types.js").WorkflowSkillRefIR[] | undefined {
+  const agentSkills = agentDef?.skills ?? [];
+  const nodeSkills = node.capabilities?.skills ?? [];
+  if (agentSkills.length === 0 && nodeSkills.length === 0) return undefined;
+  const seen = new Set<string>();
+  return [...agentSkills, ...nodeSkills].filter(s => {
+    if (seen.has(s.name)) return false;
+    seen.add(s.name);
+    return true;
+  });
+}
+
+function mergeAgentNodeTools(
+  agentDef: AgentDefinition | undefined,
+  node: WorkflowNodeIR,
+): readonly import("../ir/types.js").WorkflowToolRefIR[] | undefined {
+  const agentTools = agentDef?.tools ?? [];
+  const nodeTools = node.capabilities?.tools ?? [];
+  if (agentTools.length === 0 && nodeTools.length === 0) return undefined;
+  const seen = new Set<string>();
+  return [...agentTools, ...nodeTools].filter(t => {
+    const key = `${t.name}:${t.source ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeAgentNodeMcp(
+  agentDef: AgentDefinition | undefined,
+  node: WorkflowNodeIR,
+): readonly import("../ir/types.js").WorkflowMcpConfigIR[] | undefined {
+  const agentMcp = agentDef?.mcp ?? [];
+  const nodeMcp = node.capabilities?.mcp ?? [];
+  if (agentMcp.length === 0 && nodeMcp.length === 0) return undefined;
+  const seen = new Set<string>();
+  return [...agentMcp, ...nodeMcp].filter(m => {
+    if (seen.has(m.server)) return false;
+    seen.add(m.server);
+    return true;
+  });
 }
 
 /**

@@ -1,8 +1,17 @@
-import type { AgentDefinition } from "./types.js";
+import type { AgentDefinition, CustomAgentDefinition } from "./types.js";
 import type { WorkflowConfig } from "../config/types.js";
 
+/** 独立自定义智能体注册中心接口，提供宿主级智能体目录能力。 */
+export interface CustomAgentRegistry {
+  list(): readonly CustomAgentDefinition[];
+  get(id: string): CustomAgentDefinition | undefined;
+  has(id: string): boolean;
+  register(def: CustomAgentDefinition): void;
+  loadFromConfig(config: WorkflowConfig): void;
+}
+
 /** Agent 定义的注册中心，支持注册、查询、枚举及从配置批量加载。 */
-export class AgentRegistry {
+export class AgentRegistry implements CustomAgentRegistry {
   private agents = new Map<string, AgentDefinition>();
 
   /**
@@ -10,8 +19,8 @@ export class AgentRegistry {
    *
    * @param definition Agent 定义（id 必须唯一）
    */
-  register(definition: AgentDefinition): void {
-    this.agents.set(definition.id, definition);
+  register(definition: AgentDefinition | CustomAgentDefinition): void {
+    this.agents.set(definition.id, definition as AgentDefinition);
   }
 
   /**
@@ -56,6 +65,7 @@ export class AgentRegistry {
 
   /**
    * 从 WorkflowConfig 的 agents 配置批量加载 Agent 定义。
+   * 配置来源被提升为宿主级独立智能体目录，而非仅供 workflow 使用的配置表。
    *
    * @param config 工作流配置对象
    */
@@ -68,7 +78,7 @@ export class AgentRegistry {
 }
 
 /**
- * 从 WorkflowConfig 创建并初始化 AgentRegistry。
+ * 从 WorkflowConfig 创建并初始化自定义智能体注册中心。
  *
  * @param config 工作流配置
  * @returns 已加载配置的注册中心

@@ -66,8 +66,9 @@ switch (command) {
     console.log("  pi-workflow trace <workflow-path> [input.json]");
     console.log("  pi-workflow inspect <workflow-path> [options]");
     console.log("  pi-workflow pkg install|list|info|uninstall");
-    console.log("  pi-workflow agent list|show|resolve <id>");
+    console.log("  pi-workflow agent list|show|resolve|run <id>");
     console.log("  pi-workflow policy show|check");
+    console.log("  pi-agent list|show|resolve|run <id>    (智能体独立入口，基于 yargs)");
     console.log("");
     console.log("命令:");
     console.log("  build    将目录式 workflow 构建为 .pwb bundle");
@@ -76,8 +77,10 @@ switch (command) {
     console.log("  trace    执行工作流并输出完整 trace");
     console.log("  inspect  检查工作流结构、节点详情、context diff");
     console.log("  pkg      管理 PI 包 (install/list/info/uninstall)");
-    console.log("  agent    列出、查看和解析智能体 (list/show/resolve)");
+    console.log("  agent    列出、查看、解析和运行智能体 (list/show/resolve/run)");
     console.log("  policy   查看或校验安全策略");
+    console.log("");
+    console.log("提示: pi-agent 是与 pi-workflow agent 等价的独立智能体管理命令。");
     console.log("");
     console.log("run 选项:");
     console.log("  --mock             使用 Mock PI Host（跳过真实模型调用）");

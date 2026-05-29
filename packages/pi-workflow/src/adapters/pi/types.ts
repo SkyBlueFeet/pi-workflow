@@ -1,6 +1,7 @@
 import type { WorkflowHostCapabilities } from "../../host/types.js";
 import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
 import type { WorkflowSessionCheckpoint } from "../../store/types.js";
+import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 
 /** 向 PI Agent 发起的运行请求。 */
 export interface WorkflowAgentRequest {
@@ -18,6 +19,10 @@ export interface WorkflowAgentRequest {
   readonly toolExecutors?: ReadonlyArray<{
     readonly name: string;
     readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }>;
+  }>;
+  readonly initialMessages?: ReadonlyArray<{
+    readonly role: "user" | "assistant";
+    readonly content: string | readonly { readonly type: "text"; readonly text: string }[];
   }>;
 }
 
@@ -93,10 +98,12 @@ export interface WorkflowCapabilityCatalog {
   readonly prompts: readonly WorkflowPiCapabilityRef[];
   readonly tools: readonly WorkflowPiCapabilityRef[];
 }
-
 /** PI 宿主能力的完整接口定义，涵盖 Agent 运行、工具调用、资源查询、用户交互与会话。 */
 export interface WorkflowPiHostCapabilities extends WorkflowHostCapabilities {
   runAgent(request: WorkflowAgentRequest): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult>;
+  runNamedAgent?(
+    request: CustomAgentInvokeRequest,
+  ): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult>;
   checkPermission?(capability: string, resource?: string): Promise<{ allowed: boolean; reason?: string }> | { allowed: boolean; reason?: string };
   callTool?(request: WorkflowToolRequest): Promise<WorkflowToolResult>;
   listResources?(query: WorkflowResourceQuery): Promise<readonly WorkflowResourceRef[]>;

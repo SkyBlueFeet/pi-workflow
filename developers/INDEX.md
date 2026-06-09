@@ -55,6 +55,9 @@
 
 | 文档 | 说明 |
 |---|---|
+| [DESIGN/README.md](./DESIGN/README.md) | 设计文档目录，收录关键架构与重构方案 |
+| [DESIGN/DESIGN_PI-AGENT-ASSEMBLY.md](./DESIGN/DESIGN_PI-AGENT-ASSEMBLY.md) | 将当前自定义 agent 重构为“PI 原生 Agent 装配 DSL”的专题设计 |
+| [PLANS/pi-workflow-phases/PLAN_PHASE-10_PI-AGENT-ASSEMBLY-IMPLEMENTATION.md](./PLANS/pi-workflow-phases/PLAN_PHASE-10_PI-AGENT-ASSEMBLY-IMPLEMENTATION.md) | 阶段 10 的专项计划：以 `pi-tui` 为默认运行面的 PI Agent Assembly DSL 实施收口，承接实现步骤、模块改造、外部 agent 地址引用与验收口径 |
 | [ANALYSIS/README.md](./ANALYSIS/README.md) | 分析文档命名、模板与版本锚点要求 |
 | [REPORTS/README.md](./REPORTS/README.md) | 质量报告命名、章节、字段与判定标准 |
 | [PLANS/TEMPLATE.md](./PLANS/TEMPLATE.md) | 计划文档模板，预置 DoD 与验收结论章节 |

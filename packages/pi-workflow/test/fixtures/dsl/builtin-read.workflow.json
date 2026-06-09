@@ -1,0 +1,17 @@
+{
+  "id": "builtin-read-workflow",
+  "version": "1.0",
+  "title": "Builtin Read Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Read File",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "read" },
+        "params": { "from": "literal", "value": { "path": "test.txt" } }
+      }
+    }
+  ]
+}

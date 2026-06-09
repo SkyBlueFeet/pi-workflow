@@ -1,0 +1,17 @@
+{
+  "id": "builtin-find-workflow",
+  "version": "1.0",
+  "title": "Builtin Find Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Find Files",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "find" },
+        "params": { "from": "literal", "value": { "pattern": "*.json", "path": "." } }
+      }
+    }
+  ]
+}

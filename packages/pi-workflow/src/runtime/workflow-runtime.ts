@@ -14,6 +14,12 @@ import { HttpExecutor } from "../executors/http-executor.js";
 import { ManualExecutor } from "../executors/manual-executor.js";
 import { ReturnExecutor } from "../executors/return-executor.js";
 import { ToolExecutor } from "../executors/tool-executor.js";
+import { TemplateExecutor } from "../executors/template-executor.js";
+import { AssignExecutor } from "../executors/assign-executor.js";
+import { MergeExecutor } from "../executors/merge-executor.js";
+import { CodeExecutor } from "../executors/code-executor.js";
+import { DelayExecutor } from "../executors/delay-executor.js";
+import { ListOpExecutor } from "../executors/list-op-executor.js";
 
 /** 工作流运行请求 */
 export interface WorkflowRunRequest {
@@ -71,6 +77,12 @@ export class WorkflowRuntime {
       reg.register("tool", new ToolExecutor());
       reg.register("http", new HttpExecutor());
       reg.register("extractor", new ExtractorExecutor());
+      reg.register("template", new TemplateExecutor());
+      reg.register("assign", new AssignExecutor());
+      reg.register("merge", new MergeExecutor());
+      reg.register("code", new CodeExecutor());
+      reg.register("delay", new DelayExecutor());
+      reg.register("list-op", new ListOpExecutor());
       reg.registerFallback(new UnsupportedExecutor());
       return reg;
     })();

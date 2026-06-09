@@ -162,7 +162,7 @@ describe("resolveAgentConfig", () => {
     expect(resolved.tools.map(t => t.name)).toEqual(["search", "read", "calc"]);
   });
 
-  it("workflow tools 按全局 < 智能体 < 节点顺序合并", () => {
+  it("workflow tools 仅从智能体定义和节点显式引用合并", () => {
     const node = makeNode({
       executor: { type: "agent", config: { agentId: "helper" } },
       capabilities: {
@@ -186,9 +186,33 @@ describe("resolveAgentConfig", () => {
     const registry = makeRegistry(config.agents);
 
     const resolved = resolveAgentConfig(node, config, registry);
-    expect(Object.keys(resolved.workflowTools)).toEqual(["globalTool", "agentTool", "nodeTool"]);
-    expect(resolved.workflowTools["globalTool"].name).toBe("globalTool");
+    expect(Object.keys(resolved.workflowTools)).toEqual(["agentTool", "nodeTool"]);
+    expect(resolved.workflowTools["globalTool"]).toBeUndefined();
     expect(resolved.workflowTools["agentTool"].name).toBe("agentTool");
+  });
+
+  it("全局 workflowTools 可作为节点显式引用的定义来源", () => {
+    const node = makeNode({
+      capabilities: {
+        tools: [
+          { name: "globalTool", source: "workflow" },
+        ],
+      },
+    });
+    const config: WorkflowConfig = {
+      workflowTools: {
+        globalTool: {
+          workflow: { id: "g", version: "1", title: "G", entryNodeIds: [], nodes: [], edges: [] },
+          description: "global definition",
+        },
+      },
+    };
+    const registry = makeRegistry();
+
+    const resolved = resolveAgentConfig(node, config, registry);
+    expect(Object.keys(resolved.workflowTools)).toEqual(["globalTool"]);
+    expect(resolved.workflowTools["globalTool"].description).toBe("global definition");
+    expect(resolved.workflowTools["globalTool"].workflow.id).toBe("g");
   });
 
   it("同名 workflow tool 节点级覆盖智能体级", () => {

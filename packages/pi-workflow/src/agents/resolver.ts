@@ -263,12 +263,6 @@ function mergeWorkflowTools(
 ): Record<string, WorkflowToolDefinition> {
   const merged: Record<string, WorkflowToolDefinition> = {};
 
-  if (config.workflowTools) {
-    for (const [name, def] of Object.entries(config.workflowTools)) {
-      merged[name] = { name, ...def };
-    }
-  }
-
   if (agentDef?.workflowTools) {
     for (const [name, def] of Object.entries(agentDef.workflowTools)) {
       merged[name] = { name, ...def };
@@ -278,10 +272,12 @@ function mergeWorkflowTools(
   const nodeTools = node.capabilities?.tools ?? [];
   for (const toolRef of nodeTools) {
     if (toolRef.source === "workflow" && toolRef.name) {
+      const globalDef = config.workflowTools?.[toolRef.name];
       merged[toolRef.name] = {
+        ...globalDef,
         ...merged[toolRef.name],
         name: toolRef.name,
-        description: toolRef.description ?? merged[toolRef.name]?.description,
+        description: toolRef.description ?? merged[toolRef.name]?.description ?? globalDef?.description,
       };
     }
   }

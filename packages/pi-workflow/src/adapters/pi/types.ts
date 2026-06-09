@@ -1,4 +1,5 @@
 import type { WorkflowHostCapabilities } from "../../host/types.js";
+import type { PermissionCapability } from "../../security/types.js";
 import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
 import type { WorkflowSessionCheckpoint } from "../../store/types.js";
 import type { CustomAgentInvokeRequest } from "../../agents/types.js";
@@ -45,6 +46,7 @@ export interface WorkflowToolRequest {
 export interface WorkflowToolResult {
   readonly content: string;
   readonly isError: boolean;
+  readonly details?: Record<string, unknown>;
 }
 
 /** PI 宿主在 Agent 执行过程中发出的事件。 */
@@ -57,6 +59,16 @@ export type WorkflowHostEvent =
   | { readonly type: "agent.mcp_start"; readonly serverName: string }
   | { readonly type: "agent.mcp_end"; readonly serverName: string }
   | { readonly type: "agent.error"; readonly error: string };
+
+/** 宿主可注册的工具记录，用于 callTool() 的查找和执行。 */
+export interface HostCallableToolRecord {
+  readonly name: string;
+  readonly description?: string;
+  readonly parameters?: Record<string, unknown>;
+  readonly capability?: PermissionCapability;
+  readonly source: "builtin" | "native" | "extension";
+  readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean; details?: Record<string, unknown> }>;
+}
 
 /** 对 PI 生态中某个资源的引用。 */
 export interface WorkflowResourceRef {

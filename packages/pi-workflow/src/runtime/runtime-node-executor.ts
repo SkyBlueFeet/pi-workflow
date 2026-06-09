@@ -52,9 +52,10 @@ export class NodeExecutor {
   }
 
   async checkNodePermission(node: WorkflowNodeIR, config: WorkflowConfig | undefined, runId: string): Promise<{ allowed: boolean; reason?: string }> {
+    // tool 节点的实际权限由宿主适配器 callTool() 根据工具声明的 capability（fs.read / fs.write 等）做细粒度检查，
+    // 运行时层不再对所有 tool 节点统一按 process.execute 拦截，避免误拦中风险工具（如 read/grep/find/ls）。
     const capabilityMap: Partial<Record<string, PermissionCapability>> = {
       "http": "network.request",
-      "tool": "process.execute",
       "agent": "extension.execute",
     };
     const requiredCap = capabilityMap[node.kind];

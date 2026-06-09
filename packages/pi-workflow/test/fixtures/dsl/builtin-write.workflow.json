@@ -1,0 +1,17 @@
+{
+  "id": "builtin-write-workflow",
+  "version": "1.0",
+  "title": "Builtin Write Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Write File",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "write" },
+        "params": { "from": "literal", "value": { "path": "output.txt", "content": "hello world" } }
+      }
+    }
+  ]
+}

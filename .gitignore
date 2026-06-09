@@ -10,3 +10,8 @@ dist
 .AgentTookit-dev
 *-lock.yaml
 .test-runs
+**/.edge-*
+*.log
+package-lock.json
+yarn.lock
+.pnpm-lock.yaml

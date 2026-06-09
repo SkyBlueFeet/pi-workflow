@@ -18,7 +18,8 @@
     "packages/pi-package-adapter",
     "packages/pi-extension-loader",
     "packages/pi-builtin-tools",
-    "apps/pi-workflow-cli"
+    "apps/pi-workflow-cli",
+    "apps/pi-workflow-web"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

@@ -2,11 +2,21 @@ import { readFileSync, statSync, existsSync } from "node:fs";
 import { resolve, extname } from "node:path";
 import { dslToIr, loadPwbFile, buildPwbFromDirectory } from "@pi-workflow/core";
 import { WorkflowRuntime, ExecutorRegistry } from "@pi-workflow/core";
-import { ManualExecutor, ReturnExecutor, UnsupportedExecutor, AgentExecutor, ToolExecutor, HttpExecutor } from "@pi-workflow/core";
+import { ManualExecutor, ReturnExecutor, UnsupportedExecutor, AgentExecutor, ToolExecutor, HttpExecutor, ExtractorExecutor } from "@pi-workflow/core";
 import { FileWorkflowRunStore, MockPiHostAdapter } from "@pi-workflow/core";
 import { loadWorkflowConfigFile } from "@pi-workflow/core";
-import { ALL_CAPABILITIES } from "@pi-workflow/core";
-import type { WorkflowDiagnostic, WorkflowDslDocument, WorkflowConfig, WorkflowSecurityConfig, WorkflowRuntimeEvent, WorkflowDefinitionIR } from "@pi-workflow/core";
+import { ALL_CAPABILITIES, evaluateCapability } from "@pi-workflow/core";
+import type {
+  WorkflowDiagnostic,
+  WorkflowDslDocument,
+  WorkflowConfig,
+  WorkflowSecurityConfig,
+  WorkflowRuntimeEvent,
+  WorkflowDefinitionIR,
+  WorkflowHostCapabilities,
+  HostCallableToolRecord,
+  PermissionCapability,
+} from "@pi-workflow/core";
 import { buildPwbFromDocument } from "./build-helper.js";
 import { createLogger } from "./logger.js";
 
@@ -148,6 +158,7 @@ export async function runCommand(args: string[]): Promise<void> {
 
   const ir = dslToIr(document);
   const hasAgent = ir.nodes.some(n => n.kind === "agent");
+  const hasTool = ir.nodes.some(n => n.kind === "tool");
 
   if (debug) {
     logger.debug("IR 节点:");
@@ -163,62 +174,10 @@ export async function runCommand(args: string[]): Promise<void> {
   registry.register("return", new ReturnExecutor());
   registry.register("tool", new ToolExecutor());
   registry.register("http", new HttpExecutor());
+  registry.register("extractor", new ExtractorExecutor());
   registry.register("if", new UnsupportedExecutor());
   registry.register("parallel", new UnsupportedExecutor());
   registry.register("loop", new UnsupportedExecutor());
-
-  let host;
-  if (hasAgent) {
-    if (isMock) {
-      host = new MockPiHostAdapter();
-      logger.debug("使用 Mock PI Host");
-    } else {
-      const { PiHostAdapter } = await import("@pi-workflow/core");
-
-      let extensionTools: Array<{ name: string; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }> | undefined;
-      try {
-        const { PiExtensionBridge } = await import("@pi-workflow/extension-loader");
-        const bridge = new PiExtensionBridge();
-
-        const tools: Array<{ name: string; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }> = [];
-        const nativeTools = bridge.getNativeTools();
-        tools.push(...nativeTools.map(t => ({ name: t.name, execute: t.execute })));
-
-        if (scanExtensions) {
-          const results = await bridge.loadFromNodeModules();
-          for (const t of bridge.getAllTools()) {
-            tools.push({ name: t.name, execute: t.execute });
-          }
-          if (debug) {
-            for (const r of results) {
-              if (r.error) logger.debug(`扩展 ${r.packageName}: 跳过 (${r.error})`);
-              else logger.debug(`扩展 ${r.packageName}: 加载 ${r.tools.length} 个工具`);
-            }
-          }
-        }
-
-        extensionTools = tools;
-        if (debug && tools.length) {
-          logger.debug(`可用工具: ${tools.map(t => t.name).join(", ")}`);
-        }
-      } catch (err) {
-        logger.debug("桥接层不可用:", err instanceof Error ? err.message : err);
-      }
-
-      host = new PiHostAdapter({ extensionTools });
-      logger.debug("使用真实 PI Host" + (extensionTools?.length ? ` (${extensionTools.length} 个扩展工具)` : ""));
-    }
-    registry.register("agent", new AgentExecutor());
-  } else {
-    registry.register("agent", new UnsupportedExecutor());
-    host = undefined;
-  }
-
-  const runtime = new WorkflowRuntime({
-    executorRegistry: registry,
-    host: host as any,
-    store: new FileWorkflowRunStore(),
-  });
 
   let config: WorkflowConfig | undefined;
   if (configPath) {
@@ -241,6 +200,90 @@ export async function runCommand(args: string[]): Promise<void> {
       },
     };
   }
+
+  let host: WorkflowHostCapabilities | undefined;
+  if (hasAgent || hasTool) {
+    if (isMock) {
+      host = new MockPiHostAdapter();
+      logger.debug("使用 Mock PI Host");
+    } else {
+      const { PiHostAdapter } = await import("@pi-workflow/core");
+
+      let nativeTools: Array<{ name: string; description?: string; parameters?: Record<string, unknown>; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }> | undefined;
+      let extensionTools: Array<{ name: string; description?: string; parameters?: Record<string, unknown>; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }> | undefined;
+      let builtinTools: HostCallableToolRecord[] | undefined;
+      try {
+        const { PiExtensionBridge } = await import("@pi-workflow/extension-loader");
+        const bridge = new PiExtensionBridge();
+
+        const bridgeNativeTools = bridge.getNativeTools();
+        const loadedExtensionTools: Array<{ name: string; description?: string; parameters?: Record<string, unknown>; execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }> }> = [];
+
+        if (scanExtensions) {
+          const results = await bridge.loadFromNodeModules();
+          for (const t of bridge.getAllTools()) {
+            loadedExtensionTools.push({
+              name: t.name,
+              description: t.description,
+              parameters: t.parameters,
+              execute: t.execute,
+            });
+          }
+          if (debug) {
+            for (const r of results) {
+              if (r.error) logger.debug(`扩展 ${r.packageName}: 跳过 (${r.error})`);
+              else logger.debug(`扩展 ${r.packageName}: 加载 ${r.tools.length} 个工具`);
+            }
+          }
+        }
+
+        nativeTools = bridgeNativeTools.map(t => ({
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+          execute: t.execute,
+        }));
+        extensionTools = loadedExtensionTools;
+        if (debug && nativeTools.length) {
+          logger.debug(`可用 native 工具: ${nativeTools.map(t => t.name).join(", ")}`);
+        }
+        if (debug && extensionTools.length) {
+          logger.debug(`可用扩展工具: ${extensionTools.map(t => t.name).join(", ")}`);
+        }
+      } catch (err) {
+        logger.debug("桥接层不可用:", err instanceof Error ? err.message : err);
+      }
+
+      try {
+        const { registerBuiltinTools } = await import("@pi-workflow/builtin-tools");
+        builtinTools = registerBuiltinTools();
+        if (debug && builtinTools.length) {
+          logger.debug(`内置基础工具: ${builtinTools.map(t => t.name).join(", ")}`);
+        }
+      } catch (err) {
+        logger.debug("内置工具注册不可用:", err instanceof Error ? err.message : err);
+      }
+
+      host = new PiHostAdapter({
+        nativeTools,
+        extensionTools,
+        builtinTools,
+        permissionCheck: (capability, resource) => checkRunPermission(config, capability, resource),
+      });
+      const loadedToolCount = (nativeTools?.length ?? 0) + (extensionTools?.length ?? 0) + (builtinTools?.length ?? 0);
+      logger.debug("使用真实 PI Host" + (loadedToolCount ? ` (${loadedToolCount} 个宿主工具)` : ""));
+    }
+  } else {
+    host = undefined;
+  }
+
+  registry.register("agent", hasAgent ? new AgentExecutor() : new UnsupportedExecutor());
+
+  const runtime = new WorkflowRuntime({
+    executorRegistry: registry,
+    host,
+    store: new FileWorkflowRunStore(),
+  });
 
   const agentNodeIds = new Set(ir.nodes.filter(n => n.kind === "agent").map(n => n.id));
   let streamingNode: string | null = null;
@@ -315,6 +358,19 @@ export async function runCommand(args: string[]): Promise<void> {
       logger.debug("已清理临时 bundle:", tempPwbPath);
     }
   }
+}
+
+function checkRunPermission(
+  config: WorkflowConfig | undefined,
+  capability: string,
+  resource?: string,
+): { allowed: boolean; reason?: string } {
+  const result = evaluateCapability(
+    config?.security,
+    capability as PermissionCapability,
+    resource ? { resource } : undefined,
+  );
+  return { allowed: result.allowed, reason: result.reason };
 }
 
 class NodeTracker {

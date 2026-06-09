@@ -1,0 +1,17 @@
+{
+  "id": "builtin-ls-workflow",
+  "version": "1.0",
+  "title": "Builtin Ls Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "List Directory",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "ls" },
+        "params": { "from": "literal", "value": { "path": "." } }
+      }
+    }
+  ]
+}

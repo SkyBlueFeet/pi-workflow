@@ -1,0 +1,17 @@
+{
+  "id": "builtin-edit-workflow",
+  "version": "1.0",
+  "title": "Builtin Edit Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Edit File",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "edit" },
+        "params": { "from": "literal", "value": { "path": "test.txt", "edits": [{ "oldText": "foo", "newText": "bar" }] } }
+      }
+    }
+  ]
+}

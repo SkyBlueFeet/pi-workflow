@@ -13,6 +13,7 @@ export type {
   WorkflowPiHostCapabilities,
   WorkflowInteractionRequest,
   WorkflowInteractionResult,
+  HostCallableToolRecord,
 } from "./types.js";
 
 export { PiHostAdapter } from "./pi-host-adapter.js";

@@ -6,10 +6,11 @@ export type ValueRef =
   | { readonly from: "frame.local"; readonly path?: string }
   | { readonly from: "literal"; readonly value: unknown };
 
-/** 工作流节点类型：agent / workflow / manual / return / tool / http / if / parallel / loop / extractor。 */
+/** 工作流节点类型：agent / workflow / manual / return / tool / http / if / parallel / loop / extractor / template / assign / merge / code / delay / list-op。 */
 export type WorkflowNodeKind =
   | "agent" | "workflow" | "manual" | "return"
-  | "tool" | "http" | "if" | "parallel" | "loop" | "extractor";
+  | "tool" | "http" | "if" | "parallel" | "loop" | "extractor"
+  | "template" | "assign" | "merge" | "code" | "delay" | "list-op";
 
 /** IR 执行器定义，指定执行类型、关联 skill 及自定义配置。 */
 export interface WorkflowExecutorIR {
@@ -91,6 +92,56 @@ export interface ExtractorConfig {
   readonly summaryStyle?: "brief" | "detailed" | "bullet";
   readonly language?: string;
   readonly maxInputChars?: number;
+}
+
+/** Template 节点配置：使用 {{key}} 或 {{nested.path}} 占位符渲染字符串模板。 */
+export interface TemplateConfig {
+  readonly template: string;
+}
+
+/** Assign 节点单条赋值定义。 */
+export interface AssignEntry {
+  readonly key: string;
+  readonly to: string;
+  readonly mergeStrategy?: "replace" | "merge-object" | "append-array";
+}
+
+/** Assign 节点配置：将多个输入值显式写入 sharedContext 的指定路径。 */
+export interface AssignConfig {
+  readonly assignments: readonly AssignEntry[];
+}
+
+/** Merge 节点合并策略：first-defined 取第一个非 undefined / merge-object 浅合并 / concat-array 拼接数组。 */
+export type MergeStrategy = "first-defined" | "merge-object" | "concat-array";
+
+/** Merge 节点配置：将 if 分支的多路输出合并为单一值。 */
+export interface MergeConfig {
+  readonly strategy?: MergeStrategy;
+}
+
+/** Code 节点配置：在 Node.js vm 沙箱中执行 JavaScript 脚本，通过 return 返回结果。 */
+export interface CodeConfig {
+  readonly script: string;
+  readonly timeout?: number;
+  readonly language?: "javascript";
+}
+
+/** Delay 节点配置：等待指定毫秒数后继续，可被 AbortSignal 提前中断。 */
+export interface DelayConfig {
+  readonly delayMs: number;
+}
+
+/** ListOp 节点支持的操作类型。 */
+export type ListOpOperation = "filter" | "sort" | "slice" | "map" | "unique";
+
+/** ListOp 节点配置：对输入数组执行 filter/sort/slice/map/unique 操作。 */
+export interface ListOpConfig {
+  readonly operation: ListOpOperation;
+  readonly expression?: string;
+  readonly sortKey?: string;
+  readonly sortOrder?: "asc" | "desc";
+  readonly sliceStart?: number;
+  readonly sliceEnd?: number;
 }
 
 /** 缺失输入处理模式：询问用户、失败、跳过的行为决策。 */

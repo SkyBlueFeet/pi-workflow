@@ -1,0 +1,17 @@
+{
+  "id": "builtin-grep-workflow",
+  "version": "1.0",
+  "title": "Builtin Grep Tool",
+  "entry": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Grep Pattern",
+      "executor": { "type": "tool" },
+      "inputs": {
+        "toolName": { "from": "literal", "value": "grep" },
+        "params": { "from": "literal", "value": { "pattern": "test", "path": ".", "recursive": false } }
+      }
+    }
+  ]
+}

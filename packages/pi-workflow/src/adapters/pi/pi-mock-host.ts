@@ -6,13 +6,25 @@ import type {
   WorkflowHostEvent,
   WorkflowInteractionRequest,
   WorkflowInteractionResult,
+  WorkflowToolRequest,
+  WorkflowToolResult,
 } from "./types.js";
 import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 
 /** 测试用 Mock PI 宿主适配器，返回预设响应而非真实模型调用。 */
 export class MockPiHostAdapter implements WorkflowPiHostCapabilities {
   emitEvent?(_event: WorkflowRuntimeEvent): void | Promise<void> {}
+  private mockToolResponses = new Map<string, WorkflowToolResult>();
+
   constructor(private responses: Map<string, string> = new Map()) {}
+
+  setToolResponse(toolName: string, result: WorkflowToolResult): void {
+    this.mockToolResponses.set(toolName, result);
+  }
+
+  async callTool(request: WorkflowToolRequest): Promise<WorkflowToolResult> {
+    return this.mockToolResponses.get(request.toolName) ?? { content: `[Mock] 工具: ${request.toolName}`, isError: false };
+  }
 
   async requestUserInput(_request: WorkflowInteractionRequest): Promise<WorkflowInteractionResult> {
     return { input: { approved: false, answer: "deny" } };

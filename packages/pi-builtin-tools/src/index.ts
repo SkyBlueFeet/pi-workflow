@@ -176,3 +176,5 @@ Set raw=true to return the unprocessed response body.`,
     },
   });
 }
+
+export { registerBuiltinTools } from "./register.js";

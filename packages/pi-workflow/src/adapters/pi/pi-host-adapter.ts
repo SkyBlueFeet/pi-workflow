@@ -10,6 +10,9 @@ import type {
   WorkflowHostEvent,
   WorkflowInteractionRequest,
   WorkflowInteractionResult,
+  WorkflowToolRequest,
+  WorkflowToolResult,
+  HostCallableToolRecord,
 } from "./types.js";
 import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
@@ -19,22 +22,93 @@ export interface PiHostAdapterOptions {
   readonly defaultModel?: string;
   readonly model?: any;
   readonly permissionCheck?: (capability: string, resource?: string) => Promise<{ allowed: boolean; reason?: string }> | { allowed: boolean; reason?: string };
+  readonly nativeTools?: ReadonlyArray<{
+    readonly name: string;
+    readonly description?: string;
+    readonly inputSchema?: Record<string, unknown>;
+    readonly parameters?: Record<string, unknown>;
+    readonly capability?: HostCallableToolRecord["capability"];
+    readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean; details?: Record<string, unknown> }>;
+  }>;
   readonly extensionTools?: ReadonlyArray<{
     readonly name: string;
     readonly description?: string;
     readonly inputSchema?: Record<string, unknown>;
-    readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }>;
+    readonly parameters?: Record<string, unknown>;
+    readonly capability?: HostCallableToolRecord["capability"];
+    readonly execute: (params: Record<string, unknown>) => Promise<{ content: string; isError: boolean; details?: Record<string, unknown> }>;
   }>;
+  readonly builtinTools?: ReadonlyArray<HostCallableToolRecord>;
 }
 
 /**
  * PI 宿主的完整适配器，桥接 pi-agent-core 与 WorkflowRuntime。
- * 负责模型解析、工具合并及事件转发。
+ * 负责模型解析、工具合并、callTool 执行及事件转发。
  */
 export class PiHostAdapter implements WorkflowPiHostCapabilities {
   emitEvent?(_event: WorkflowRuntimeEvent): void | Promise<void> {}
 
-  constructor(private options: PiHostAdapterOptions = {}) {}
+  private toolRegistry = new Map<string, HostCallableToolRecord>();
+  private lastAgentToolNames: readonly string[] = [];
+
+  constructor(private options: PiHostAdapterOptions = {}) {
+    this.buildToolRegistry();
+  }
+
+  /** 根据 options 构建统一工具注册表。查找顺序：builtin > native > extension */
+  private buildToolRegistry(): void {
+    const builtin = this.options.builtinTools ?? [];
+    const native = (this.options.nativeTools ?? []).map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters ?? t.inputSchema,
+      capability: t.capability,
+      source: "native" as const,
+      execute: t.execute,
+    }));
+    const extension = (this.options.extensionTools ?? []).map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters ?? t.inputSchema,
+      capability: t.capability ?? "extension.execute" as const,
+      source: "extension" as const,
+      execute: t.execute,
+    }));
+
+    const addWithPriority = (tool: HostCallableToolRecord, source: string) => {
+      const existing = this.toolRegistry.get(tool.name);
+      if (existing) {
+        console.warn(`[PiHostAdapter] 工具 "${tool.name}" 已存在 (来源: ${existing.source})，跳过 ${source} 来源`);
+        return;
+      }
+      this.toolRegistry.set(tool.name, tool);
+    };
+
+    for (const t of builtin) addWithPriority(t, "builtin");
+    for (const t of native) addWithPriority(t, "native");
+    for (const t of extension) addWithPriority(t, "extension");
+  }
+
+  async callTool(request: WorkflowToolRequest): Promise<WorkflowToolResult> {
+    const tool = this.toolRegistry.get(request.toolName);
+    if (!tool) {
+      return { content: `工具未找到: ${request.toolName}`, isError: true };
+    }
+
+    if (tool.capability && this.options.permissionCheck) {
+      const permResult = await this.options.permissionCheck(tool.capability);
+      if (!permResult.allowed) {
+        return { content: `[PI] ${permResult.reason ?? "权限拒绝"}`, isError: true };
+      }
+    }
+
+    try {
+      const result = await tool.execute(request.params);
+      return { content: result.content, isError: result.isError, details: result.details };
+    } catch (err) {
+      return { content: err instanceof Error ? err.message : String(err), isError: true };
+    }
+  }
 
   checkPermission(capability: string, resource?: string): Promise<{ allowed: boolean; reason?: string }> | { allowed: boolean; reason?: string } {
     if (!this.options.permissionCheck) {
@@ -113,6 +187,15 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
     initialMessages?: ReadonlyArray<{ role: "user" | "assistant"; content: string | readonly { type: "text"; text: string }[] }>;
     signal?: AbortSignal;
   }): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
+    const requestExecutors = params.toolExecutors ?? [];
+    const executorMap = new Map(requestExecutors.map(e => [e.name, e.execute]));
+
+    const baseTools = params.tools?.length
+      ? params.tools.map(t => this.toAgentTool(t, executorMap.get(t.name)))
+      : [];
+    const agentTools = baseTools.length ? baseTools : undefined;
+    this.lastAgentToolNames = agentTools?.map(tool => tool.name) ?? [];
+
     const model = params.modelId
       ? this.resolveModel(params.modelId)
       : (this.options.model ?? this.resolveModel(this.options.defaultModel ?? "openai/gpt-4o-mini"));
@@ -121,17 +204,6 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
       yield { type: "agent.error", error: `不支持的模型: ${params.modelId ?? this.options.defaultModel ?? "openai/gpt-4o-mini"}` };
       return { output: null, content: "" };
     }
-
-    const extraExecutors = this.options.extensionTools ?? [];
-    const requestExecutors = params.toolExecutors ?? [];
-    const mergedExecutors = [...requestExecutors, ...extraExecutors];
-    const executorMap = new Map(mergedExecutors.map(e => [e.name, e.execute]));
-
-    const baseTools = params.tools?.length ? params.tools.map(t => this.toAgentTool(t, executorMap.get(t.name))) : [];
-    const extraTools = extraExecutors
-      .filter(e => !params.tools?.some(t => t.name === e.name))
-      .map(e => this.toAgentToolDirect(e));
-    const agentTools = baseTools.length || extraTools.length ? [...baseTools, ...extraTools] : undefined;
 
     if (params.skills?.length) {
       for (const skill of params.skills) {
@@ -256,14 +328,16 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
       label: ref.name,
       description: ref.description ?? "",
       parameters: ref.parameters ? Type.Object(ref.parameters as any) : Type.Object({}) as any,
-      execute: executor
-        ? async (_toolCallId: string, params: Record<string, unknown>) => {
-            const result = await executor(params);
-            return { content: [{ type: "text" as const, text: result.content }], details: { isError: result.isError } };
-          }
-        : async (_toolCallId: string, _params: Record<string, unknown>) => {
-            return { content: [{ type: "text" as const, text: JSON.stringify(_params) }], details: {} };
-          },
+      execute: async (_toolCallId: string, params: Record<string, unknown>) => {
+        if (!executor) {
+          return {
+            content: [{ type: "text" as const, text: `工具未绑定执行器: ${ref.name}` }],
+            details: { isError: true },
+          };
+        }
+        const result = await executor(params);
+        return { content: [{ type: "text" as const, text: result.content }], details: { isError: result.isError } };
+      },
     };
   }
 }

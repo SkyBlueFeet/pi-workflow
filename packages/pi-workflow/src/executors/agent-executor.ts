@@ -127,7 +127,7 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
     }
 
     let hostCallableTools: HostCallableTool[] | undefined;
-    if (Object.keys(resolved.workflowTools).length > 0 && context.runtime) {
+    if (resolved.workflowTools.length > 0 && context.runtime) {
       const bridgeResult = resolveWorkflowTools(resolved, config);
       if (bridgeResult.errors.length > 0) {
         const messages = bridgeResult.errors.map((error) => `${error.name}: ${error.message}`).join("; ");
@@ -154,13 +154,13 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
 
     const systemPrompt = (input["system_prompt"] as string)
       ?? (input["systemPrompt"] as string)
-      ?? resolved.systemPrompt;
+      ?? resolved.prompt.systemPrompt;
 
-    const model = (input["model"] as string) ?? (resolved.model ? formatModelString(resolved.model) : undefined);
-    const temperature = input["temperature"] as number | undefined ?? resolved.temperature;
+    const model = (input["model"] as string) ?? resolved.model?.id;
+    const temperature = input["temperature"] as number | undefined ?? resolved.model?.temperature;
     const maxTokens = (input["max_tokens"] as number | undefined)
       ?? (input["maxTokens"] as number | undefined)
-      ?? resolved.maxTokens;
+      ?? resolved.model?.maxTokens;
 
     const invoker = new CustomAgentInvoker({ host: piHost, registry, config });
     const gen = invoker.invoke({
@@ -176,6 +176,7 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
       mcp: resolved.mcp.length > 0 ? resolved.mcp : undefined,
       toolExecutors: hostCallableTools,
       signal: context.signal,
+      resolvedAssembly: resolved,
     });
 
     return yield* this.streamHostEvents(node, context, gen);
@@ -227,6 +228,12 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
         case "agent.text_delta":
           content += event.delta;
           yield {
+            type: "agent.message.delta",
+            workflowRunId: context.runId,
+            nodeId: node.id,
+            delta: event.delta,
+          };
+          yield {
             type: "node.progress",
             workflowRunId: context.runId,
             nodeId: node.id,
@@ -236,6 +243,12 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
           break;
         case "agent.tool_start":
           yield {
+            type: "agent.tool.started",
+            workflowRunId: context.runId,
+            nodeId: node.id,
+            toolName: event.toolName,
+          };
+          yield {
             type: "node.progress",
             workflowRunId: context.runId,
             nodeId: node.id,
@@ -243,6 +256,12 @@ export class AgentExecutor implements WorkflowNodeExecutor, StreamableNodeExecut
           };
           break;
         case "agent.tool_end":
+          yield {
+            type: "agent.tool.completed",
+            workflowRunId: context.runId,
+            nodeId: node.id,
+            toolName: event.toolName,
+          };
           yield {
             type: "node.progress",
             workflowRunId: context.runId,

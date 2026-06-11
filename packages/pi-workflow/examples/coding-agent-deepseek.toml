@@ -1,0 +1,54 @@
+[agents.coding]
+name = "PI Coding Agent (DeepSeek)"
+description = "使用 DeepSeek 模型的默认 pi-tui 编码助手示例"
+systemPrompt = """
+你是一个面向当前工作区的编码助手。
+优先阅读和分析代码，再做修改。
+回答尽量准确、直接，避免无根据猜测。
+需要修改文件时，先说明意图，再进行最小必要改动。
+"""
+
+[agents.coding.model]
+provider = "deepseek"
+model = "deepseek-v4-flash"
+temperature = 0.2
+maxTokens = 4096
+
+[agents.coding.runtime]
+mode = "pi-tui"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "read"
+source = "builtin"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "write"
+source = "builtin"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "edit"
+source = "builtin"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "ls"
+source = "builtin"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "grep"
+source = "builtin"
+
+[[agents.coding.tools]]
+type = "builtin"
+name = "find"
+source = "builtin"
+
+[[agents.coding.permissions]]
+capability = "fs.read"
+
+[[agents.coding.permissions]]
+capability = "fs.write"

@@ -19,6 +19,9 @@ export type WorkflowRuntimeEvent = ({ readonly timestamp?: string } & (
   | { readonly type: "frame.entered"; readonly workflowRunId: string; readonly frameId: string; readonly frameType: string; readonly parentFrameId?: string }
   | { readonly type: "node.started"; readonly workflowRunId: string; readonly nodeId: string; readonly title?: string }
   | { readonly type: "node.progress"; readonly workflowRunId: string; readonly nodeId: string; readonly message: string; readonly delta?: string }
+  | { readonly type: "agent.message.delta"; readonly workflowRunId: string; readonly nodeId: string; readonly delta: string }
+  | { readonly type: "agent.tool.started"; readonly workflowRunId: string; readonly nodeId: string; readonly toolName: string }
+  | { readonly type: "agent.tool.completed"; readonly workflowRunId: string; readonly nodeId: string; readonly toolName: string }
   | { readonly type: "node.await_input"; readonly workflowRunId: string; readonly nodeId: string; readonly interaction: WorkflowInteraction }
   | {
     readonly type: "node.completed";

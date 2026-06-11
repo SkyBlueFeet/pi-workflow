@@ -1,4 +1,5 @@
 import type { WorkflowHostCapabilities } from "../../host/types.js";
+import type { PiRuntimeEvent } from "../../agents/types.js";
 import type { PermissionCapability } from "../../security/types.js";
 import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
 import type { WorkflowSessionCheckpoint } from "../../store/types.js";
@@ -58,6 +59,7 @@ export type WorkflowHostEvent =
   | { readonly type: "agent.skill_end"; readonly skillName: string }
   | { readonly type: "agent.mcp_start"; readonly serverName: string }
   | { readonly type: "agent.mcp_end"; readonly serverName: string }
+  | { readonly type: "agent.unmapped"; readonly eventType: string; readonly payload?: Record<string, unknown> }
   | { readonly type: "agent.error"; readonly error: string };
 
 /** 宿主可注册的工具记录，用于 callTool() 的查找和执行。 */
@@ -116,6 +118,7 @@ export interface WorkflowPiHostCapabilities extends WorkflowHostCapabilities {
   runNamedAgent?(
     request: CustomAgentInvokeRequest,
   ): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult>;
+  runAgentRuntime?(request: WorkflowAgentRequest): AsyncGenerator<PiRuntimeEvent, WorkflowAgentResult>;
   checkPermission?(capability: string, resource?: string): Promise<{ allowed: boolean; reason?: string }> | { allowed: boolean; reason?: string };
   callTool?(request: WorkflowToolRequest): Promise<WorkflowToolResult>;
   listResources?(query: WorkflowResourceQuery): Promise<readonly WorkflowResourceRef[]>;

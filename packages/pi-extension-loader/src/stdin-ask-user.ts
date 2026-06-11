@@ -30,7 +30,6 @@ function buildToolResult(text: string) {
 
 /**
  * 通过标准输入依次向用户提问并收集回答。
- * 仅在 TTY 模式下可用；非 TTY 模式返回提示信息。
  * 多选问题用逗号分隔序号输入，单选问题输入序号或 'c' 取消。
  *
  * @param params 参数对象，需包含 questions 数组
@@ -41,10 +40,6 @@ export async function stdinAskUser(params: Record<string, unknown>): Promise<{ c
 
   if (!typed.questions?.length) {
     return buildToolResult("Error: no questions provided");
-  }
-
-  if (!process.stdin.isTTY) {
-    return buildToolResult("User declined to answer questions (non-TTY mode)");
   }
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });

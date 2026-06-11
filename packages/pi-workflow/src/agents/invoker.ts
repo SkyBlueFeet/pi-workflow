@@ -29,8 +29,8 @@ export class CustomAgentInvoker {
   ): AsyncGenerator<WorkflowHostEvent, CustomAgentInvokeResult> {
     const { host, registry } = this.options;
 
-    const definition = registry.get(request.agentId);
-    if (!definition) {
+    const normalized = registry.get(request.agentId);
+    if (!normalized && !request.resolvedAssembly) {
       yield { type: "agent.error", error: `自定义智能体 "${request.agentId}" 未找到` };
       return {
         agentId: request.agentId,
@@ -39,17 +39,46 @@ export class CustomAgentInvoker {
       };
     }
 
-    const systemPrompt = request.systemPrompt ?? definition.systemPrompt ?? "You are a helpful assistant.";
+    const resolved = request.resolvedAssembly ?? (normalized
+      ? {
+          id: normalized.id,
+          prompt: {
+            systemPrompt: normalized.systemPrompt ?? "You are a helpful assistant.",
+            userPrompt: request.prompt ?? JSON.stringify(request.input ?? {}),
+            initialMessages: request.initialMessages ?? normalized.initialMessages,
+          },
+          model: normalized.model
+            ? {
+                id: normalized.model.provider && normalized.model.model
+                  ? `${normalized.model.provider}/${normalized.model.model}`
+                  : undefined,
+                provider: normalized.model.provider,
+                name: normalized.model.model,
+                temperature: normalized.model.temperature,
+                maxTokens: normalized.model.maxTokens,
+              }
+            : undefined,
+          skills: normalized.skills,
+          tools: normalized.tools,
+          executableTools: [],
+          workflowTools: [],
+          mcp: normalized.mcp,
+          permissions: normalized.permissions,
+          runtimeMode: normalized.runtimeMode,
+          uiProfile: normalized.uiProfile,
+          diagnostics: normalized.diagnostics,
+          metadata: normalized.metadata,
+        }
+      : undefined);
+
+    const systemPrompt = request.systemPrompt ?? resolved?.prompt.systemPrompt ?? "You are a helpful assistant.";
     const userPrompt = request.prompt ?? JSON.stringify(request.input ?? {});
 
-    const modelFromDef = definition.model
-      ? `${definition.model.provider ?? ""}/${definition.model.model ?? ""}`
-      : undefined;
     const modelFromConfig = this.options.config?.model
       ? `${this.options.config.model.provider ?? ""}/${this.options.config.model.model ?? ""}`
       : undefined;
 
-    const model = request.model ?? modelFromDef ?? modelFromConfig ?? undefined;
+    const model = request.model ?? resolved?.model?.id ?? modelFromConfig ?? undefined;
 
     const agentRequest: WorkflowAgentRequest = {
       nodeId: `custom-agent-${request.agentId}`,
@@ -57,14 +86,14 @@ export class CustomAgentInvoker {
       prompt: userPrompt,
       input: request.input ?? {},
       model,
-      temperature: request.temperature ?? definition.temperature,
-      maxTokens: request.maxTokens ?? definition.maxTokens,
-      skills: request.skills ?? definition.skills,
-      tools: request.tools ?? definition.tools,
-      mcp: request.mcp ?? definition.mcp,
+      temperature: request.temperature ?? resolved?.model?.temperature,
+      maxTokens: request.maxTokens ?? resolved?.model?.maxTokens,
+      skills: request.skills ?? resolved?.skills,
+      tools: request.tools ?? resolved?.tools,
+      mcp: request.mcp ?? resolved?.mcp,
       signal: request.signal,
       toolExecutors: request.toolExecutors,
-      initialMessages: request.initialMessages,
+      initialMessages: request.initialMessages ?? resolved?.prompt.initialMessages,
     };
 
     const gen = host.runAgent(agentRequest);

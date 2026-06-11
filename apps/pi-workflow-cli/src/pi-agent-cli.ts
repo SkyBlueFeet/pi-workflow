@@ -3,12 +3,15 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { agentCommand } from "./commands/agent.js";
+import { loadCliEnvFiles } from "./env.js";
+
+loadCliEnvFiles();
 
 yargs(hideBin(process.argv))
   .scriptName("pi-agent")
   .command({
-    command: "chat <id>",
-    describe: "交互式对话 - 与智能体进行多轮对话",
+    command: "run <id>",
+    describe: "启动 PI 原生界面",
     builder: (yargs) =>
       yargs
         .positional("id", { type: "string", demandOption: true, describe: "智能体 ID" })
@@ -16,7 +19,7 @@ yargs(hideBin(process.argv))
         .option("model", { type: "string", describe: "模型覆盖" })
         .option("debug", { type: "boolean", default: false, describe: "输出调试信息" }),
     handler: async (argv) => {
-      const args = ["chat", argv.id as string, "--config", argv.config as string];
+      const args = ["run", argv.id as string, "--config", argv.config as string];
       if (argv.model) args.push("--model", argv.model as string);
       if (argv.debug) args.push("--debug");
       await agentCommand(args);
@@ -54,25 +57,27 @@ yargs(hideBin(process.argv))
     },
   })
   .command({
-    command: "run <id> [input]",
+    command: "once <id>",
     describe: "单轮执行 - 适用于脚本/管道批处理场景",
     builder: (yargs) =>
       yargs
         .positional("id", { type: "string", demandOption: true, describe: "智能体 ID" })
-        .positional("input", { type: "string", describe: "输入 JSON 文件路径" })
         .option("config", { type: "string", demandOption: true, describe: "配置文件路径" })
+        .option("input", { type: "string", describe: "输入 JSON 文件路径" })
+        .option("prompt", { type: "string", describe: "直接指定本轮 prompt" })
         .option("model", { type: "string", describe: "模型覆盖" })
         .option("debug", { type: "boolean", default: false, describe: "输出调试信息" }),
     handler: async (argv) => {
-      const args = ["run", argv.id as string];
-      if (argv.input) args.push(argv.input as string);
+      const args = ["once", argv.id as string];
       args.push("--config", argv.config as string);
+      if (argv.input) args.push("--input", argv.input as string);
+      if (argv.prompt) args.push("--prompt", argv.prompt as string);
       if (argv.model) args.push("--model", argv.model as string);
       if (argv.debug) args.push("--debug");
       await agentCommand(args);
     },
   })
-  .demandCommand(1, "请指定子命令: chat | list | show | resolve | run")
+  .demandCommand(1, "请指定子命令: run | once | list | show | resolve")
   .strict()
   .help()
   .parse();

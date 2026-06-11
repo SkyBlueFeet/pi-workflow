@@ -1,0 +1,8 @@
+[[security.permissions]]
+capability = "network.request"
+
+[[security.permissions]]
+capability = "process.execute"
+
+[[security.permissions]]
+capability = "extension.execute"

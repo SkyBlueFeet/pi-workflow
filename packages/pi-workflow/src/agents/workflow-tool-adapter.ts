@@ -1,7 +1,6 @@
 import type { WorkflowRuntime } from "../runtime/workflow-runtime.js";
 import type { WorkflowConfig } from "../config/types.js";
-import type { ResolvedWorkflowTool } from "./workflow-tool-bridge.js";
-import type { HostCallableTool } from "./types.js";
+import type { HostCallableTool, ResolvedWorkflowTool } from "./types.js";
 import { evaluateCapability, restrictSecurityConfig } from "../security/policy.js";
 import { requestPermissionApproval } from "../security/permission-request.js";
 import type { WorkflowPiHostCapabilities } from "../adapters/pi/types.js";

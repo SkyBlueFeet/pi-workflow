@@ -140,6 +140,21 @@ describe("validateWorkflowConfig", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("workflow agent 节点使用外部 agent 文件地址引用时预检失败", () => {
+    const ir = makeIr([
+      makeAgentNode("agent-1", {
+        executor: { type: "agent", config: { agentConfigPath: "./agents/external.toml", agentRef: "writer" } },
+      }),
+    ]);
+    const config: WorkflowConfig = {
+      model: { provider: "openai", model: "gpt-4o-mini" },
+    };
+
+    const result = validateWorkflowConfig(ir, config);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.field === "executor.config.agentConfigPath" && error.message.includes("当前不支持"))).toBe(true);
+  });
+
   it("校验 agent 局部 workflowTools 的路径", () => {
     const ir = makeIr([
       makeAgentNode("agent-1", { executor: { type: "agent", config: { agentId: "writer" } } }),

@@ -203,7 +203,16 @@ function validateAgentNode(
   errors: ConfigValidationError[] = [],
   agentIds?: Set<string>,
 ): void {
+  const executorConfig = node.executor?.config as Record<string, unknown> | undefined;
   const agentId = (node.executor?.config as Record<string, unknown>)?.["agentId"] as string | undefined;
+
+  if (typeof executorConfig?.["agentConfigPath"] === "string" || typeof executorConfig?.["agentRef"] === "string") {
+    errors.push({
+      nodeId: node.id,
+      field: "executor.config.agentConfigPath",
+      message: `agent 节点 "${node.id}" 当前不支持通过 agentConfigPath/agentRef 引用外部 agent 配置文件。请改为引用 WorkflowConfig.agents，或直接在节点 inputs 中提供模型与提示词`,
+    });
+  }
 
   if (agentId) {
     if (!agentIds?.has(agentId)) {

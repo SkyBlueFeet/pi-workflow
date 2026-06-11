@@ -3,16 +3,7 @@ import { resolve } from "node:path";
 import type { WorkflowDefinitionIR } from "../ir/types.js";
 import { loadFromObject, loadFromDirectory, dslToIr } from "../dsl/index.js";
 import type { WorkflowConfig } from "../config/types.js";
-import type { WorkflowToolDefinition, ResolvedAgentConfig } from "./types.js";
-
-/** 已解析的工作流工具：名称、描述及完整 IR。 */
-export interface ResolvedWorkflowTool {
-  readonly name: string;
-  readonly description?: string;
-  readonly workflow: WorkflowDefinitionIR;
-  readonly inputSchema?: Record<string, unknown>;
-  readonly permissions?: WorkflowToolDefinition["permissions"];
-}
+import type { ResolvedAgentConfig, ResolvedWorkflowTool, WorkflowToolDefinition } from "./types.js";
 
 /** 工作流工具桥接的解析结果，包含成功工具与失败错误。 */
 export interface WorkflowToolBridgeResult {
@@ -43,8 +34,17 @@ export function resolveWorkflowTools(
   const tools: ResolvedWorkflowTool[] = [];
   const errors: WorkflowToolBridgeError[] = [];
 
-  for (const [name, def] of Object.entries(resolvedConfig.workflowTools)) {
+  const workflowToolEntries = Array.isArray(resolvedConfig.workflowTools)
+    ? resolvedConfig.workflowTools.map((tool) => [tool.name, tool] as const)
+    : Object.entries(resolvedConfig.workflowTools);
+
+  for (const [name, def] of workflowToolEntries) {
     try {
+      if (isResolvedWorkflowTool(def)) {
+        tools.push(def);
+        continue;
+      }
+
       const resolved = resolveSingleWorkflowTool(name, def, cwd ?? config.baseDir);
       if (resolved) {
         tools.push(resolved);
@@ -55,6 +55,10 @@ export function resolveWorkflowTools(
   }
 
   return { tools, errors };
+}
+
+function isResolvedWorkflowTool(value: WorkflowToolDefinition | ResolvedWorkflowTool): value is ResolvedWorkflowTool {
+  return "workflow" in value && typeof value.workflow === "object" && value.workflow !== null && "entryNodeIds" in value.workflow;
 }
 
 function resolveSingleWorkflowTool(

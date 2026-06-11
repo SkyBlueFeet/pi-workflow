@@ -119,10 +119,6 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
   }
 
   async requestUserInput(request: WorkflowInteractionRequest): Promise<WorkflowInteractionResult> {
-    if (!process.stdin.isTTY) {
-      return { input: { approved: false, answer: "deny" } };
-    }
-
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
       console.log(`\n[ask_user] ${request.question}`);
@@ -191,7 +187,7 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
     const executorMap = new Map(requestExecutors.map(e => [e.name, e.execute]));
 
     const baseTools = params.tools?.length
-      ? params.tools.map(t => this.toAgentTool(t, executorMap.get(t.name)))
+      ? params.tools.map(t => this.toAgentTool(t, executorMap.get(t.name) ?? this.resolveRegisteredToolExecutor(t.name)))
       : [];
     const agentTools = baseTools.length ? baseTools : undefined;
     this.lastAgentToolNames = agentTools?.map(tool => tool.name) ?? [];
@@ -270,7 +266,8 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
 
     while (!done || eventQueue.length > 0) {
       while (eventQueue.length > 0) {
-        yield eventQueue.shift()!;
+        const hostEvent = eventQueue.shift()!;
+        yield hostEvent;
       }
       if (!done) {
         await new Promise(resolve => setTimeout(resolve, 5));
@@ -338,6 +335,23 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
         const result = await executor(params);
         return { content: [{ type: "text" as const, text: result.content }], details: { isError: result.isError } };
       },
+    };
+  }
+
+  /**
+   * 当调用方只声明了可用工具名、但未额外注入 toolExecutors 时，
+   * 回退到宿主自身工具注册表，保证 builtin/native/extension 工具可直接执行。
+   */
+  private resolveRegisteredToolExecutor(
+    toolName: string,
+  ): ((params: Record<string, unknown>) => Promise<{ content: string; isError: boolean }>) | undefined {
+    if (!this.toolRegistry.has(toolName)) {
+      return undefined;
+    }
+
+    return async (params: Record<string, unknown>) => {
+      const result = await this.callTool({ toolName, params });
+      return { content: result.content, isError: result.isError };
     };
   }
 }

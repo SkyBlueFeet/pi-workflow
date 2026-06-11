@@ -23,7 +23,20 @@ export class MockPiHostAdapter implements WorkflowPiHostCapabilities {
   }
 
   async callTool(request: WorkflowToolRequest): Promise<WorkflowToolResult> {
-    return this.mockToolResponses.get(request.toolName) ?? { content: `[Mock] 工具: ${request.toolName}`, isError: false };
+    const configured = this.mockToolResponses.get(request.toolName);
+    if (configured) {
+      return configured;
+    }
+
+    if (request.toolName === "echo") {
+      return {
+        content: JSON.stringify(request.params),
+        isError: false,
+        details: request.params,
+      };
+    }
+
+    return { content: `[Mock] 工具: ${request.toolName}`, isError: false };
   }
 
   async requestUserInput(_request: WorkflowInteractionRequest): Promise<WorkflowInteractionResult> {

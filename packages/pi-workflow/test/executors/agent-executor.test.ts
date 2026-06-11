@@ -148,6 +148,7 @@ describe("AgentExecutor", () => {
         agents: {
           writer: {
             permissions: [{ capability: "extension.execute" }, { capability: "workflow.invoke" }],
+            tools: [{ name: "summarize", source: "workflow" }],
             workflowTools: {
               summarize: {
                 workflow: {
@@ -204,8 +205,8 @@ describe("AgentExecutor", () => {
 
     await executor.execute(node, context);
     expect(capturedRequest?.model).toBe("anthropic/claude-3-7-sonnet");
-    expect(capturedRequest?.temperature).toBe(0.4);
-    expect(capturedRequest?.maxTokens).toBe(4096);
+    expect(capturedRequest?.temperature).toBe(0.2);
+    expect(capturedRequest?.maxTokens).toBe(2048);
     expect(capturedRequest?.skills?.map(skill => skill.name)).toEqual(["outline"]);
     expect(capturedRequest?.mcp?.map(entry => entry.server)).toEqual(["ctx7"]);
   });
@@ -328,5 +329,41 @@ describe("AgentExecutor", () => {
     };
 
     await expect(executor.execute(node, context)).resolves.toMatchObject({ output: "ok" });
+  });
+
+  it("流式执行同时产出结构化 agent 事件与兼容 node.progress", async () => {
+    const executor = new AgentExecutor();
+    const node: WorkflowNodeIR = {
+      id: "a10", title: "Agent", kind: "agent",
+      dependsOn: [], inputBindings: {},
+    };
+    const context: ExecutionContext = {
+      runId: "test-run",
+      nodeId: "a10",
+      nodeInput: { user_prompt: "test" },
+      sharedContext: {},
+      host: {
+        async *runAgent(): AsyncGenerator<WorkflowHostEvent, WorkflowAgentResult> {
+          yield { type: "agent.text_delta", delta: "hello" };
+          yield { type: "agent.tool_start", toolName: "search" };
+          yield { type: "agent.tool_end", toolName: "search" };
+          return { output: "hello", content: "hello" };
+        },
+      },
+    };
+
+    const events: string[] = [];
+    for await (const event of executor.executeStreaming(node, context)) {
+      events.push(event.type);
+    }
+
+    expect(events).toEqual([
+      "agent.message.delta",
+      "node.progress",
+      "agent.tool.started",
+      "node.progress",
+      "agent.tool.completed",
+      "node.progress",
+    ]);
   });
 });

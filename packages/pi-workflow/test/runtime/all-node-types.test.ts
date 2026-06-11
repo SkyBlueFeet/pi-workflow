@@ -4,14 +4,20 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AgentExecutor,
+  AssignExecutor,
+  CodeExecutor,
+  DelayExecutor,
   dslToIr,
   ExecutorRegistry,
   ExtractorExecutor,
   HttpExecutor,
+  ListOpExecutor,
   loadFromObject,
   ManualExecutor,
+  MergeExecutor,
   MockPiHostAdapter,
   ReturnExecutor,
+  TemplateExecutor,
   ToolExecutor,
   WorkflowRuntime,
 } from "../../src/index.js";
@@ -57,6 +63,12 @@ function createRuntime(host: MockPiHostAdapter) {
   registry.register("extractor", new ExtractorExecutor());
   registry.register("tool", toolExecutor);
   registry.register("agent", new AgentExecutor());
+  registry.register("template", new TemplateExecutor());
+  registry.register("assign", new AssignExecutor());
+  registry.register("merge", new MergeExecutor());
+  registry.register("code", new CodeExecutor());
+  registry.register("delay", new DelayExecutor());
+  registry.register("list-op", new ListOpExecutor());
 
   return new WorkflowRuntime({ executorRegistry: registry, host });
 }
@@ -66,20 +78,6 @@ function createConfig(): WorkflowConfig {
     model: {
       provider: "mock",
       model: "test-model",
-    },
-    agents: {
-      "all-node-types-agent": {
-        systemPrompt: "你是一个测试用数据分析助手。",
-        model: {
-          provider: "mock",
-          model: "agent-model",
-        },
-        temperature: 0.1,
-        skills: [],
-        tools: [],
-        mcp: [],
-        permissions: [{ capability: "extension.execute" }],
-      },
     },
     security: {
       permissions: [
@@ -96,10 +94,11 @@ describe("all-node-types fixture", () => {
     vi.unstubAllGlobals();
   });
 
-  it("全部节点类型都能完成一次离线运行", async () => {
+  it("全部节点类型都能完成一次有业务意义的离线履约处置流程", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      ok: true,
-      source: "mock-fetch",
+      status: "amber",
+      dispatchWindow: "18:00",
+      lane: "east-region",
     }), {
       status: 200,
       statusText: "OK",
@@ -108,7 +107,7 @@ describe("all-node-types fixture", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const host = new RecordingPiHostAdapter();
-    host.setResponse("custom-agent-all-node-types-agent", "mock agent ok");
+    host.setResponse("agent-summary", "建议优先从 North Hub 调拨，并同步升级给运营经理复核承运窗口。");
 
     const runtime = createRuntime(host);
     const events = [];
@@ -121,9 +120,9 @@ describe("all-node-types fixture", () => {
     expect(failedEvents).toEqual([]);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(host.agentRequests).toHaveLength(1);
-    expect(host.agentRequests[0]?.skills ?? []).toEqual([]);
-    expect(host.agentRequests[0]?.tools ?? []).toEqual([]);
-    expect(host.agentRequests[0]?.mcp ?? []).toEqual([]);
+    expect(host.agentRequests[0]?.skills).toBeUndefined();
+    expect(host.agentRequests[0]?.tools).toBeUndefined();
+    expect(host.agentRequests[0]?.mcp).toBeUndefined();
     expect(host.agentRequests[0]?.toolExecutors).toBeUndefined();
 
     const completedNodeIds = events
@@ -132,17 +131,26 @@ describe("all-node-types fixture", () => {
 
     expect(completedNodeIds).toEqual(expect.arrayContaining([
       "init",
-      "decide",
-      "branch-body",
-      "fan-out",
+      "extract-order",
       "task-http",
-      "task-extract",
+      "carrier-fallback",
+      "merge-carrier",
+      "screen-candidates",
+      "sort-candidates",
+      "select-plan",
+      "decide-escalation",
+      "fallback-escalation",
+      "merge-escalation",
       "call-tool",
-      "ai-agent",
+      "draft-message",
+      "agent-summary",
+      "pause-for-sync",
+      "build-actions",
       "iterate",
       "loop-body",
+      "assign-report",
       "sub",
-      "sub-step",
+      "sub-step",      
       "final",
     ]));
     expect(completedNodeIds.filter(nodeId => nodeId === "loop-body")).toHaveLength(3);
@@ -151,23 +159,57 @@ describe("all-node-types fixture", () => {
     expect(completed?.type).toBe("workflow.completed");
     if (completed?.type !== "workflow.completed") return;
 
-    const finalOutput = completed.finalOutput as Record<string, Record<string, unknown>>;
-    expect(finalOutput.httpResult.status).toBe(200);
-    expect(finalOutput.extractResult.data).toEqual({ name: "Alice", age: "30" });
-    expect(finalOutput.toolResult).toEqual({
-      content: "{\"message\":\"hello from tool node\",\"source\":\"all-node-types\"}",
-      isError: false,
-      details: {
-        message: "hello from tool node",
-        source: "all-node-types",
-      },
+    const finalOutput = completed.finalOutput as Record<string, any>;
+    expect(finalOutput.carrierDecision).toMatchObject({
+      status: "amber",
+      dispatchWindow: "18:00",
+      lane: "east-region",
     });
-    expect(finalOutput.agentResult).toBe("mock agent ok");
-    expect(finalOutput.loopResult).toEqual([{ current: "x" }, { current: "y" }, { current: "z" }]);
+    expect(finalOutput.orderInfo.data).toEqual({
+      warehouse: "East Hub",
+      sku: "SKU-42",
+      shortage: "18",
+      priority: "high",
+      customer: "Aurora Market",
+    });
+    expect(finalOutput.dispatchPlan).toMatchObject({
+      ticketId: "RST-20260611-001",
+      recommendedWarehouse: "North Hub",
+      transferableUnits: 18,
+      carrierWindow: "18:00",
+      escalationNeeded: true,
+      riskLevel: "attention",
+    });
+    expect(finalOutput.notificationPayload).toEqual({
+      content: JSON.stringify(finalOutput.dispatchPlan),
+      isError: false,
+      details: finalOutput.dispatchPlan,
+    });
+    expect(finalOutput.customerMessage).toContain("North Hub");
+    expect(finalOutput.customerMessage).toContain("SKU-42");
+    expect(finalOutput.agentSummary).toBe("建议优先从 North Hub 调拨，并同步升级给运营经理复核承运窗口。");
+    expect(finalOutput.actionItems).toEqual([
+      { step: "从North Hub锁定18件SKU-42" },
+      { step: "在18:00前提交承运预约" },
+      { step: "升级给ops-manager复核：承运窗口受限或无法当日达，需要人工确认是否拆单" },
+    ]);
+    expect(finalOutput.report).toMatchObject({
+      plan: expect.objectContaining({
+        recommendedWarehouse: "North Hub",
+      }),
+      customerMessage: finalOutput.customerMessage,
+      agentSummary: "建议优先从 North Hub 调拨，并同步升级给运营经理复核承运窗口。",
+    });
     expect(finalOutput.final).toMatchObject({
-      httpStatus: 200,
-      agent: "mock agent ok",
-      sub: { summary: "子工作流完成" },
+      ticketId: "RST-20260611-001",
+      escalation: {
+        level: "ops-manager",
+        reason: "承运窗口受限或无法当日达，需要人工确认是否拆单",
+      },
+      closure: {
+        status: "ready-to-dispatch",
+        owner: "supply-ops",
+      },
     });
   });
 });

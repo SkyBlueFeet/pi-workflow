@@ -128,13 +128,8 @@ export class NodeExecutor {
     const permCheck = await this.checkNodePermission(node, config, frame.runId);
     if (!permCheck.allowed) {
       const errorMsg = `安全策略拒绝: ${permCheck.reason}`;
-      nodeResults.set(node.id, {
-        output: { error: errorMsg },
-        artifacts: [{ type: "tool.error", data: { error: errorMsg }, targetPath: node.output?.to, mergeStrategy: node.output?.mergeStrategy ?? "replace" }],
-      });
-      completedNodes.add(node.id);
       yield* this.emit({ type: "node.failed", workflowRunId: frame.runId, nodeId: node.id, error: errorMsg }, silent);
-      return;
+      throw new Error(errorMsg);
     }
     yield* this.emit({ type: "node.started", workflowRunId: frame.runId, nodeId: node.id, title: node.title }, silent);
 

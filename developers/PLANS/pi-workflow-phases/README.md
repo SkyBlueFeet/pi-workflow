@@ -1,7 +1,7 @@
 ---
 **版本锚点**
 - 创建时间：2026-05-26 10:00 +08:00
-- 最后更新：2026-06-09 22:55 +08:00
+- 最后更新：2026-06-10 19:30 +08:00
 - 代码快照日期：2026-05-30
 
 ---
@@ -34,6 +34,7 @@
 - [阶段 9：PI 生态集成 ✅](./PLAN_PHASE-9_PI-ECOSYSTEM-INTEGRATION.md) — 初版交付已通过
 - [阶段 10：自定义智能体系统](./PLAN_PHASE-10_CUSTOM-AGENT-SYSTEM.md) — 记录当前已完成的独立 agent 基础设施，供后续主链路复用
 - [阶段 10 专项：PI Agent Assembly 装配 DSL 实施收口](./PLAN_PHASE-10_PI-AGENT-ASSEMBLY-IMPLEMENTATION.md) — 阶段 10 的主目标计划，聚焦 `pi-tui` 默认运行面、Assembly DSL 收口、默认 coding agent 与外部 agent 地址引用
+- [阶段 10.5 专项：Workflow TUI 第一阶段与第二阶段功能声明](./PLAN_PHASE-10-5_WORKFLOW-TUI-SHELL.md) — 第一阶段观察型 workflow shell 已完成并验收；第二阶段仍处于规划中
 - [阶段 11：软件安全策略 ✅](./PLAN_PHASE-11_SOFTWARE-SECURITY-POLICY.md) — 主链路已完成，可继续细化权限 scope 与可视化表现
 - [阶段 12：PWB Bundle 运行态](./PLAN_PHASE-12_PWB-BUNDLE-RUNTIME.md)
 - [阶段 13：PI 宿主工具与基础工具迁移](./PLAN_PHASE-13_PI-HOST-TOOLS-AND-FILE-CAPABILITIES.md) — 规划中，聚焦 `callTool()`、`read/write/edit/ls/grep/find` 迁移与 `tool` 节点宿主闭环

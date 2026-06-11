@@ -46,7 +46,7 @@ describe("policyCommand", () => {
 
     await policyCommand(["show", "workflow.toml"]);
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("默认拒绝策略"));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), expect.stringContaining("默认拒绝策略"));
   });
 
   it("check 预检失败时退出", async () => {
@@ -63,7 +63,7 @@ describe("policyCommand", () => {
 
     await expect(policyCommand(["check", "workflow", "--config", "workflow.toml"]))
       .rejects.toThrow("EXIT:1");
-    expect(errorSpy).toHaveBeenCalledWith("[预检失败] [config] security.permissions: 缺少授权");
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"), "[预检失败] [config] security.permissions: 缺少授权");
     exitSpy.mockRestore();
   });
 
@@ -75,6 +75,6 @@ describe("policyCommand", () => {
 
     await policyCommand(["check", "workflow", "--config", "workflow.toml"]);
 
-    expect(logSpy).toHaveBeenCalledWith("安全预检通过");
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "安全预检通过");
   });
 });

@@ -1,7 +1,7 @@
 ---
 **版本锚点**
 - 创建时间：2026-05-26 10:00 +08:00
-- 最后更新：2026-06-09 22:55 +08:00
+- 最后更新：2026-06-10 19:30 +08:00
 - 代码快照日期：2026-05-30
 
 ---
@@ -91,6 +91,7 @@ PI 接入原则：
 | 阶段 8 | [调试与可视化](./pi-workflow-phases/PLAN_PHASE-8_DEBUG-AND-VISUALIZATION.md) | 支持 trace、replay、context diff、graph model 和 CLI/SDK 调试入口 |
 | 阶段 9 | [PI 生态集成](./pi-workflow-phases/PLAN_PHASE-9_PI-ECOSYSTEM-INTEGRATION.md) | TOML 配置、PI 包管理器、资源加载、基于 PI 的 extension 桥接、信任模型 |
 | 阶段 10 | [自定义智能体系统](./pi-workflow-phases/PLAN_PHASE-10_CUSTOM-AGENT-SYSTEM.md) | 基于 PI 的独立自定义智能体、宿主级运行入口、workflow 复用适配 |
+| 阶段 10.5 | [Workflow TUI 第一阶段与第二阶段功能声明](./pi-workflow-phases/PLAN_PHASE-10-5_WORKFLOW-TUI-SHELL.md) | 第一阶段完成观察型 workflow shell；第二阶段整合 PI 通用终端框架并落地 workflow 总览 TUI、agent 子视图与输入路由 |
 | 阶段 11 | [软件安全策略](./pi-workflow-phases/PLAN_PHASE-11_SOFTWARE-SECURITY-POLICY.md) | 权限模型、预检、降权传播、审计、PI 生态安全适配 |
 | 阶段 12 | [PWB Bundle 运行态](./pi-workflow-phases/PLAN_PHASE-12_PWB-BUNDLE-RUNTIME.md) | 建立目录作者态到 `pwb` 运行态的 bundle 构建、加载与运行主链路 |
 | 阶段 13 | [PI 宿主工具与基础工具迁移](./pi-workflow-phases/PLAN_PHASE-13_PI-HOST-TOOLS-AND-FILE-CAPABILITIES.md) ✅ | 打通 `callTool()`、迁入无头 `read/write/edit/ls/grep/find`，建立 workflow `tool` 节点与宿主基础工具闭环 |
@@ -194,7 +195,8 @@ PI 接入原则：
 8. ✅ 阶段 12 PWB Bundle 运行态主链路已完成：包括 `pwb` zip 构建/加载、`inline`/`archive` 资源分类归档、强制哈希与大小校验、CLI `build`/`run`/`inspect` 命令、临时 bundle 自动清理，以及 build/load/run/inspect 四类测试矩阵。
 9. Config 模块的前置工作已完成（ModelConfig、WorkflowConfig、层级解析、预运行校验），作为阶段 9-12 的配置基础。
 10. ✅ 阶段 13 PI 宿主工具与基础工具迁移已完成：包括 `PiHostAdapter.callTool()` 实现、`read/write/edit/ls/grep/find` 六个无头基础工具迁入、`register.ts` 统一注册入口、CLI 装配、权限接入、`ToolExecutor` 宿主回退链路闭环、新增 11 个测试项和 6 个 workflow fixture。
-11. 全部阶段 0-13 主链路已完成。后续可继续补更多专用端到端测试与真实 PI 宿主对接，但不影响当前已完成阶段主链路状态。
+11. workflow 级 TUI 第一阶段已形成正式观察型运行面；阶段 10.5 第二阶段仍处于规划中，后续按专项计划推进。
+12. 全部阶段 0-13 主链路已完成。后续可继续补更多专用端到端测试、workflow TUI 与真实 PI 宿主对接，但不影响当前已完成阶段主链路状态。
 
 阶段 6 当前状态：
 
@@ -222,6 +224,8 @@ PI 接入原则：
 
 阶段 10 在阶段 9 的资源加载与工具桥接主链路稳定后进入。阶段 10 当前的主目标已经明确为“以 `pi-tui` 为默认运行面的 PI Agent Assembly DSL 收口”，推进顺序为“Assembly DSL 定义 -> 多来源 registry -> normalizer / resolver -> `pi-tui` backend / host surface -> 默认 coding agent -> workflow 复用 -> 外部 agent 地址引用”。
 
+阶段 10.5 在阶段 10 的 Assembly DSL、`PiRuntimeEvent`、独立 `agent run` `pi-tui` 主链路稳定后进入。阶段 10.5 当前的推进顺序为“统一 `run` / `resume` 装配入口 -> workflow 观察型 shell -> 结构化事件提升 -> 回归测试 -> 接入 PI 通用终端框架 -> 实现 workflow 总览 TUI -> 接入 agent session/runtime 复用层 -> 实现 agent 子视图与输入路由”，目前仅第一阶段完成，第二阶段仍在规划中，且两阶段均不直接嵌套 `InteractiveMode.run()`。
+
 阶段 11 在阶段 9-10 的包桥接、智能体与 workflow tool 主链路稳定后进入。阶段 11 按“权限面盘点 -> 安全配置 -> 权限解析 -> 运行前预检 -> 执行链路接入 -> 审计与 PI 生态适配”顺序推进，原则上优先复用 PI 生态内已验证能力，只补 workflow 语义层的权限治理缺口。
 
 阶段 12 在阶段 11 的安全边界基本稳定后进入。阶段 12 按“bundle 类型与校验 -> 目录构建 bundle -> 资源归档 -> bundle 运行入口 -> CLI 收口与兼容策略”顺序推进，明确目录只作为作者态输入，运行时以 `pwb` 为主。
@@ -237,6 +241,7 @@ PI 接入原则：
 - 最终判定（当前）：阶段 0-13 主链路全部已完成。
 - 阶段 9 状态：初版交付已通过。
 - 阶段 10 状态：当前已完成独立 agent、CLI、invoker、workflow 兼容等基础设施；但以 `pi-tui` 为默认运行面的 Assembly DSL 主目标尚未完成，且外部 agent 地址引用仍在实施收口中。
+- 阶段 10.5 状态：第一阶段观察型 workflow shell 已完成并验收；第二阶段仍处于规划中，后续按专项计划推进 workflow 总览 TUI、agent 子视图、输入路由与 runtime/session 复用。
 - 阶段 11 状态：主链路已完成，后续可继续细化权限 scope、真实 PI 权限桥接与可视化表现。
 - 阶段 12 状态：主链路已完成。包含 zip `pwb` 构建/加载、独立 `resources/` 模块、`inline` 资源内联到 document、`archive` 资源 zip 归档、强制哈希与大小校验、CLI `build`/`run`/`inspect` 命令、临时 bundle 自动清理，以及 build/load/run/inspect 四类测试矩阵。
 - 阶段 13 状态：✅ 已完成。`PiHostAdapter.callTool()` 已实现（工具注册表/查找/权限/执行），六个无头基础工具已迁入，权限检查已接入，`ToolExecutor` 宿主回退闭环已形成并通过测试。

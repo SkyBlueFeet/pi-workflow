@@ -1,7 +1,7 @@
 import type { WorkflowNodeKind, ValueRef } from "@pi-workflow/core";
 import type { NodeTypeMeta } from "./graph.js";
 
-/** 全部 10 种节点类型的可视化注册表 */
+/** 全部节点类型的可视化注册表 */
 export const NODE_TYPE_REGISTRY: Record<WorkflowNodeKind, NodeTypeMeta> = {
   manual: {
     kind: "manual", label: "手动", color: "#6B7280", icon: "✋",
@@ -39,6 +39,48 @@ export const NODE_TYPE_REGISTRY: Record<WorkflowNodeKind, NodeTypeMeta> = {
   extractor: {
     kind: "extractor", label: "提取器", color: "#EC4899", icon: "🔍",
     category: "primitive", defaultInputs: {},
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: true,
+  },
+  template: {
+    kind: "template", label: "模板", color: "#F97316", icon: "🧩",
+    category: "primitive",
+    defaultInputs: { template: { from: "literal", value: "" } as ValueRef },
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: false,
+  },
+  assign: {
+    kind: "assign", label: "赋值", color: "#22C55E", icon: "📝",
+    category: "primitive",
+    defaultInputs: {},
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: false,
+  },
+  merge: {
+    kind: "merge", label: "合并", color: "#0EA5E9", icon: "🪢",
+    category: "primitive",
+    defaultInputs: {},
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: false,
+  },
+  code: {
+    kind: "code", label: "代码", color: "#A855F7", icon: "💻",
+    category: "primitive",
+    defaultInputs: { script: { from: "literal", value: "" } as ValueRef },
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: true,
+  },
+  delay: {
+    kind: "delay", label: "延迟", color: "#64748B", icon: "⏳",
+    category: "primitive",
+    defaultInputs: { delayMs: { from: "literal", value: 1000 } as ValueRef },
+    hasChildren: false, hasCondition: false, hasLoopConfig: false,
+    hasCapabilities: false, hasExecutorConfig: false,
+  },
+  "list-op": {
+    kind: "list-op", label: "列表操作", color: "#14B8A6", icon: "📚",
+    category: "primitive",
+    defaultInputs: {},
     hasChildren: false, hasCondition: false, hasLoopConfig: false,
     hasCapabilities: false, hasExecutorConfig: true,
   },

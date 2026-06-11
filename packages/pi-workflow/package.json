@@ -58,6 +58,7 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.75.5",
     "@earendil-works/pi-ai": "^0.75.5",
+    "@earendil-works/pi-coding-agent": "^0.75.5",
     "@pi-workflow/pi-package-adapter": "*",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3",

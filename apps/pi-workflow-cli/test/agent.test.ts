@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as readline from "node:readline";
 import { agentCommand } from "../src/commands/agent.js";
 
 const coreMocks = vi.hoisted(() => ({
@@ -8,6 +7,7 @@ const coreMocks = vi.hoisted(() => ({
   loadWorkflowConfigFile: vi.fn(),
   CustomAgentInvoker: vi.fn(),
   PiHostAdapter: vi.fn(),
+  runResolvedAssemblyInPiTui: vi.fn(),
 }));
 
 vi.mock("@pi-workflow/core", () => ({
@@ -16,10 +16,7 @@ vi.mock("@pi-workflow/core", () => ({
   loadWorkflowConfigFile: coreMocks.loadWorkflowConfigFile,
   CustomAgentInvoker: coreMocks.CustomAgentInvoker,
   PiHostAdapter: coreMocks.PiHostAdapter,
-}));
-
-vi.mock("node:readline", () => ({
-  createInterface: vi.fn(),
+  runResolvedAssemblyInPiTui: coreMocks.runResolvedAssemblyInPiTui,
 }));
 
 describe("agentCommand", () => {
@@ -28,12 +25,23 @@ describe("agentCommand", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env["PI_WORKFLOW_TEST_MODEL"];
   });
 
   it("list 输出智能体摘要", async () => {
     coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
     coreMocks.createRegistryFromConfig.mockReturnValue({
-      list: () => [{ id: "writer", name: "Writer", description: "Writes", skills: [{ name: "outline" }], tools: [], workflowTools: {}, mcp: [] }],
+      list: () => [{
+        id: "writer",
+        name: "Writer",
+        description: "Writes",
+        skills: [{ name: "outline" }],
+        tools: [],
+        workflowOverlay: { workflowTools: {} },
+        runtimeMode: "pi-tui",
+        diagnostics: [],
+        mcp: [],
+      }],
     });
 
     await agentCommand(["list", "--config", "workflow.toml"]);
@@ -45,7 +53,16 @@ describe("agentCommand", () => {
   it("show 输出指定智能体详情", async () => {
     coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
     coreMocks.createRegistryFromConfig.mockReturnValue({
-      get: (id: string) => id === "writer" ? { id: "writer", systemPrompt: "You are writer.", model: { provider: "openai", model: "gpt-4o-mini" } } : undefined,
+      get: (id: string) => id === "writer"
+        ? {
+            id: "writer",
+            systemPrompt: "You are writer.",
+            model: { provider: "openai", model: "gpt-4o-mini" },
+            workflowOverlay: { workflowTools: {} },
+            runtimeMode: "pi-tui",
+            diagnostics: [],
+          }
+        : undefined,
     });
 
     await agentCommand(["show", "writer", "--config", "workflow.toml"]);
@@ -60,16 +77,19 @@ describe("agentCommand", () => {
       has: (id: string) => id === "writer",
     });
     coreMocks.resolveAgentConfig.mockReturnValue({
-      systemPrompt: "You are writer.",
-      userPrompt: "Write a summary",
-      model: { provider: "openai", model: "gpt-4o-mini" },
-      temperature: 0.5,
-      maxTokens: 1024,
+      prompt: {
+        systemPrompt: "You are writer.",
+        userPrompt: "Write a summary",
+      },
+      model: { id: "openai/gpt-4o-mini", provider: "openai", name: "gpt-4o-mini", temperature: 0.5, maxTokens: 1024 },
       skills: [{ name: "outline" }],
-      tools: [{ name: "search", source: "web" }],
-      workflowTools: {},
+      tools: [{ name: "search", type: "native" }],
+      workflowTools: [],
+      executableTools: [],
       mcp: [{ server: "ctx7" }],
       permissions: [{ capability: "workflow.invoke" }],
+      runtimeMode: "pi-tui",
+      diagnostics: [],
     });
 
     await agentCommand(["resolve", "writer", "--config", "workflow.toml"]);
@@ -93,26 +113,45 @@ describe("agentCommand", () => {
     exitSpy.mockRestore();
   });
 
-  it("run 流式输出智能体执行结果", async () => {
-    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  it("run 默认进入 pi-tui 运行面", async () => {
+    coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
+    coreMocks.createRegistryFromConfig.mockReturnValue({
+      has: (id: string) => id === "writer",
+    });
+    coreMocks.resolveAgentConfig.mockReturnValue({
+      id: "writer",
+      prompt: { systemPrompt: "You are writer.", userPrompt: "hello" },
+      model: { id: "openai/gpt-4o-mini", provider: "openai", name: "gpt-4o-mini" },
+      skills: [],
+      tools: [],
+      executableTools: [],
+      workflowTools: [],
+      mcp: [],
+      permissions: [],
+      runtimeMode: "pi-tui",
+      diagnostics: [],
+    });
+    coreMocks.runResolvedAssemblyInPiTui.mockResolvedValue({ runtimeHost: {}, diagnostics: [] });
+
+    await agentCommand(["run", "writer", "--config", "workflow.toml"]);
+
+    expect(coreMocks.resolveAgentConfig).toHaveBeenCalled();
+    expect(coreMocks.runResolvedAssemblyInPiTui).toHaveBeenCalled();
+  });
+
+  it("run 在传入位置参数时提示改用 once", async () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`EXIT:${code}`);
+    }) as never);
 
     coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
     coreMocks.createRegistryFromConfig.mockReturnValue({
       has: (id: string) => id === "writer",
     });
-    coreMocks.PiHostAdapter.mockImplementation(() => ({}));
-    coreMocks.CustomAgentInvoker.mockImplementation(function (this: any) {
-      this.invoke = async function* () {
-        yield { type: "agent.text_delta" as const, delta: "Hello" };
-        yield { type: "agent.text_delta" as const, delta: " World" };
-      };
-    });
 
-    await agentCommand(["run", "writer", "--config", "workflow.toml"]);
-
-    expect(writeSpy).toHaveBeenCalledWith("Hello");
-    expect(writeSpy).toHaveBeenCalledWith(" World");
-    writeSpy.mockRestore();
+    await expect(agentCommand(["run", "writer", "bad.json", "--config", "workflow.toml"])).rejects.toThrow("EXIT:1");
+    expect(errorSpy).toHaveBeenCalled();
+    exitSpy.mockRestore();
   });
 
   it("run 缺少 --config 时退出", async () => {
@@ -140,7 +179,74 @@ describe("agentCommand", () => {
     exitSpy.mockRestore();
   });
 
-  it("run 无效 input.json 时退出", async () => {
+  it("once 用 --prompt 单轮执行", async () => {
+    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
+    coreMocks.createRegistryFromConfig.mockReturnValue({
+      has: (id: string) => id === "writer",
+    });
+    coreMocks.resolveAgentConfig.mockReturnValue({
+      id: "writer",
+      prompt: { systemPrompt: "You are writer." },
+      model: { id: "openai/gpt-4o-mini", provider: "openai", name: "gpt-4o-mini" },
+      skills: [],
+      tools: [],
+      executableTools: [],
+      workflowTools: [],
+      mcp: [],
+      permissions: [],
+      runtimeMode: "pi-tui",
+      diagnostics: [],
+    });
+    coreMocks.PiHostAdapter.mockImplementation(() => ({}));
+    coreMocks.CustomAgentInvoker.mockImplementation(function (this: any) {
+      this.invoke = async function* (request: Record<string, unknown>) {
+        expect(request.prompt).toBe("hello");
+        yield { type: "agent.text_delta" as const, delta: "done" };
+      };
+    });
+
+    await agentCommand(["once", "writer", "--config", "workflow.toml", "--prompt", "hello"]);
+
+    expect(writeSpy).toHaveBeenCalledWith("done");
+    writeSpy.mockRestore();
+  });
+
+  it("run 在未显式指定 --model 时使用测试模型环境变量", async () => {
+    process.env["PI_WORKFLOW_TEST_MODEL"] = "deepseek/deepseek-v4-flash";
+    coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
+    coreMocks.createRegistryFromConfig.mockReturnValue({
+      has: (id: string) => id === "writer",
+    });
+    coreMocks.resolveAgentConfig.mockReturnValue({
+      id: "writer",
+      prompt: { systemPrompt: "You are writer." },
+      model: { id: "openai/gpt-4o-mini", provider: "openai", name: "gpt-4o-mini" },
+      skills: [],
+      tools: [],
+      executableTools: [],
+      workflowTools: [],
+      mcp: [],
+      permissions: [],
+      runtimeMode: "pi-tui",
+      diagnostics: [],
+    });
+    coreMocks.runResolvedAssemblyInPiTui.mockResolvedValue({ runtimeHost: {}, diagnostics: [] });
+
+    await agentCommand(["run", "writer", "--config", "workflow.toml"]);
+
+    expect(coreMocks.runResolvedAssemblyInPiTui).toHaveBeenCalledWith(expect.objectContaining({
+      assembly: expect.objectContaining({
+        model: expect.objectContaining({
+          id: "deepseek/deepseek-v4-flash",
+          provider: "deepseek",
+          name: "deepseek-v4-flash",
+        }),
+      }),
+    }));
+  });
+
+  it("once 同时指定 --prompt 和 --input 时退出", async () => {
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`EXIT:${code}`);
     }) as never);
@@ -150,57 +256,32 @@ describe("agentCommand", () => {
       has: (id: string) => id === "writer",
     });
 
-    await expect(agentCommand(["run", "writer", "bad.json", "--config", "workflow.toml"])).rejects.toThrow("EXIT:1");
+    await expect(agentCommand([
+      "once",
+      "writer",
+      "--config",
+      "workflow.toml",
+      "--prompt",
+      "hello",
+      "--input",
+      "bad.json",
+    ])).rejects.toThrow("EXIT:1");
     expect(errorSpy).toHaveBeenCalled();
     exitSpy.mockRestore();
   });
 
-  it("chat 第二轮将历史消息作为文本块传递", async () => {
-    const questionMock = vi.fn<(query: string, callback: (answer: string) => void) => void>()
-      .mockImplementationOnce((_query, callback) => callback("hi"))
-      .mockImplementationOnce((_query, callback) => callback("你好"))
-      .mockImplementationOnce((_query, callback) => callback("/exit"));
-    const closeMock = vi.fn();
-    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    const capturedRequests: Array<Record<string, unknown>> = [];
+  it("once 缺少显式输入时退出", async () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`EXIT:${code}`);
+    }) as never);
 
-    vi.mocked(readline.createInterface).mockReturnValue({
-      question: questionMock,
-      close: closeMock,
-    } as unknown as readline.Interface);
-
-    coreMocks.loadWorkflowConfigFile.mockReturnValue({
-      config: {
-        model: { provider: "deepseek", model: "deepseek-v4-flash" },
-        agents: { assistant: { name: "测试助手", systemPrompt: "你是助手" } },
-      },
-      baseDir: "E:/repo",
-    });
+    coreMocks.loadWorkflowConfigFile.mockReturnValue({ config: {}, baseDir: "E:/repo" });
     coreMocks.createRegistryFromConfig.mockReturnValue({
-      has: (id: string) => id === "assistant",
-      get: () => ({ name: "测试助手", systemPrompt: "你是助手" }),
-    });
-    coreMocks.PiHostAdapter.mockImplementation(() => ({}));
-    coreMocks.CustomAgentInvoker.mockImplementation(function (this: any) {
-      this.invoke = async function* (request: Record<string, unknown>) {
-        capturedRequests.push(request);
-        yield {
-          type: "agent.text_delta" as const,
-          delta: capturedRequests.length === 1 ? "第一轮回复" : "第二轮回复",
-        };
-      };
+      has: (id: string) => id === "writer",
     });
 
-    await agentCommand(["chat", "assistant", "--config", "workflow.toml"]);
-
-    expect(capturedRequests).toHaveLength(2);
-    expect(capturedRequests[1]?.initialMessages).toEqual([
-      { role: "user", content: [{ type: "text", text: "hi" }] },
-      { role: "assistant", content: [{ type: "text", text: "第一轮回复" }] },
-    ]);
-    expect(writeSpy).toHaveBeenCalledWith("第一轮回复");
-    expect(writeSpy).toHaveBeenCalledWith("第二轮回复");
-
-    writeSpy.mockRestore();
+    await expect(agentCommand(["once", "writer", "--config", "workflow.toml"])).rejects.toThrow("EXIT:1");
+    expect(errorSpy).toHaveBeenCalled();
+    exitSpy.mockRestore();
   });
 });

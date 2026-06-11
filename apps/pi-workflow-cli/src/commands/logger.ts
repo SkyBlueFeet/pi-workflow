@@ -91,10 +91,6 @@ function writeLog(level: CliLogLevel, scope: string, message: string, ...args: r
 
 function formatPrefix(level: CliLogLevel, scope: string): string {
   const timestamp = formatTimestamp(new Date());
-  if (!process.stderr.isTTY) {
-    return `[${timestamp}] [${CLI_PACKAGE_NAME}] [${level}] [${scope}]`;
-  }
-
   return `${ANSI_DIM}[${timestamp}]${ANSI_RESET} ${ANSI_CYAN}[${CLI_PACKAGE_NAME}]${ANSI_RESET} ${colorizeLevel(level)} ${ANSI_MAGENTA}[${scope}]${ANSI_RESET}`;
 }
 

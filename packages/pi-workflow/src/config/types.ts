@@ -22,7 +22,7 @@ export interface ExecutorConfig {
   maxWorkflowToolDepth?: number;
 }
 
-import type { AgentDefinition, WorkflowToolDefinition } from "../agents/types.js";
+import type { PiAgentAssemblySpec, WorkflowToolDefinition } from "../agents/types.js";
 
 /**
  * 完整的工作流配置，可由 TOML / JSON 配置文件反序列化得到。
@@ -34,7 +34,7 @@ export interface WorkflowConfig {
   executor?: ExecutorConfig;
   baseDir?: string;
   packages?: Record<string, string>;
-  agents?: Record<string, Omit<AgentDefinition, "id">>;
+  agents?: Record<string, Omit<PiAgentAssemblySpec, "id">>;
   workflowTools?: Record<string, Omit<WorkflowToolDefinition, "name">>;
   security?: WorkflowSecurityConfig;
 }

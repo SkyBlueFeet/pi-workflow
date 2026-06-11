@@ -1,90 +1,106 @@
-import type { AgentDefinition, CustomAgentDefinition } from "./types.js";
 import type { WorkflowConfig } from "../config/types.js";
+import { createAssemblySpecFromLegacyDefinition } from "./assembly-normalizer.js";
+import {
+  normalizeAgentAssembly,
+  type NormalizeAgentAssemblyOptions,
+  type NormalizeAgentAssemblyResult,
+} from "./resolver.js";
+import type {
+  AgentAssemblyMeta,
+  NormalizedPiAgentAssembly,
+  PiAgentAssemblySpec,
+} from "./types.js";
 
-/** 独立自定义智能体注册中心接口，提供宿主级智能体目录能力。 */
+/** 当前配置文件装载后的 agent 索引接口。 */
 export interface CustomAgentRegistry {
-  list(): readonly CustomAgentDefinition[];
-  get(id: string): CustomAgentDefinition | undefined;
+  list(): readonly NormalizedPiAgentAssembly[];
+  get(id: string): NormalizedPiAgentAssembly | undefined;
   has(id: string): boolean;
-  register(def: CustomAgentDefinition): void;
+  register(spec: PiAgentAssemblySpec, meta?: AgentAssemblyMeta): string;
+  resolveReference(ref: string): NormalizedPiAgentAssembly | undefined;
   loadFromConfig(config: WorkflowConfig): void;
 }
 
-/** Agent 定义的注册中心，支持注册、查询、枚举及从配置批量加载。 */
+/** 统一装配 registry，只维护单个显式配置文件的定义域。 */
 export class AgentRegistry implements CustomAgentRegistry {
-  private agents = new Map<string, AgentDefinition>();
+  private readonly rawSpecs = new Map<string, PiAgentAssemblySpec>();
+  private readonly normalized = new Map<string, NormalizedPiAgentAssembly>();
 
-  /**
-   * 注册一个 Agent 定义。
-   *
-   * @param definition Agent 定义（id 必须唯一）
-   */
-  register(definition: AgentDefinition | CustomAgentDefinition): void {
-    this.agents.set(definition.id, definition as AgentDefinition);
+  constructor(private readonly normalizeOptions: NormalizeAgentAssemblyOptions = {}) {}
+
+  register(spec: PiAgentAssemblySpec, meta?: AgentAssemblyMeta): string {
+    const result = this.normalizeAndStore(spec, meta);
+    this.rawSpecs.set(spec.id, spec);
+    this.normalized.set(spec.id, result.assembly);
+    return spec.id;
   }
 
-  /**
-   * 根据 ID 获取 Agent 定义。
-   *
-   * @param id Agent 标识
-   * @returns Agent 定义，未注册时返回 undefined
-   */
-  get(id: string): AgentDefinition | undefined {
-    return this.agents.get(id);
+  get(id: string): NormalizedPiAgentAssembly | undefined {
+    return this.normalized.get(id);
   }
 
-  /** 返回所有已注册的 Agent 定义列表。 */
-  list(): AgentDefinition[] {
-    return Array.from(this.agents.values());
+  resolveReference(ref: string): NormalizedPiAgentAssembly | undefined {
+    return this.normalized.get(ref);
   }
 
-  /**
-   * 检查指定 ID 是否已注册。
-   *
-   * @param id Agent 标识
-   * @returns 是否已注册
-   */
+  list(): readonly NormalizedPiAgentAssembly[] {
+    return Array.from(this.normalized.values());
+  }
+
   has(id: string): boolean {
-    return this.agents.has(id);
+    return this.normalized.has(id);
   }
 
-  /** 清空所有已注册的 Agent 定义。 */
   clear(): void {
-    this.agents.clear();
+    this.rawSpecs.clear();
+    this.normalized.clear();
   }
 
-  /**
-   * 移除指定 ID 的 Agent 定义。
-   *
-   * @param id Agent 标识
-   * @returns 是否存在并已删除
-   */
   remove(id: string): boolean {
-    return this.agents.delete(id);
+    this.rawSpecs.delete(id);
+    return this.normalized.delete(id);
   }
 
-  /**
-   * 从 WorkflowConfig 的 agents 配置批量加载 Agent 定义。
-   * 配置来源被提升为宿主级独立智能体目录，而非仅供 workflow 使用的配置表。
-   *
-   * @param config 工作流配置对象
-   */
   loadFromConfig(config: WorkflowConfig): void {
-    if (!config.agents) return;
-    for (const [id, agentDef] of Object.entries(config.agents)) {
-      this.register({ ...agentDef, id });
+    if (!config.agents) {
+      return;
     }
+
+    for (const [id, spec] of Object.entries(config.agents)) {
+      this.register(
+        createAssemblySpecFromLegacyDefinition(id, {
+          ...spec,
+          metadata: {
+            originPath: config.baseDir,
+            extra: spec.metadata?.extra,
+          },
+        }),
+        {
+          originPath: config.baseDir,
+          source: "workflow-config",
+        },
+      );
+    }
+  }
+
+  private normalizeAndStore(
+    spec: PiAgentAssemblySpec,
+    meta?: AgentAssemblyMeta,
+  ): NormalizeAgentAssemblyResult {
+    return normalizeAgentAssembly(spec, {
+      ...this.normalizeOptions,
+      meta,
+      resolveParent: (id) => this.rawSpecs.get(id),
+    });
   }
 }
 
-/**
- * 从 WorkflowConfig 创建并初始化自定义智能体注册中心。
- *
- * @param config 工作流配置
- * @returns 已加载配置的注册中心
- */
-export function createRegistryFromConfig(config: WorkflowConfig): AgentRegistry {
-  const registry = new AgentRegistry();
+/** 从配置文件创建并初始化 registry。 */
+export function createRegistryFromConfig(
+  config: WorkflowConfig,
+  options?: NormalizeAgentAssemblyOptions,
+): AgentRegistry {
+  const registry = new AgentRegistry(options);
   registry.loadFromConfig(config);
   return registry;
 }

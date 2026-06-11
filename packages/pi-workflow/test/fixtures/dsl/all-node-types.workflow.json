@@ -1,163 +1,359 @@
 {
   "id": "all-node-types",
   "version": "1.0",
-  "title": "All Node Types Test Workflow",
+  "title": "库存补货异常处置流程",
   "entry": "init",
   "nodes": [
     {
       "id": "init",
-      "title": "1-初始化 (manual)",
+      "title": "1-接收补货请求 (manual)",
       "executor": { "type": "manual" },
       "inputs": {
-        "data": { "from": "literal", "value": "name: Alice, age: 30" },
-        "items": { "from": "literal", "value": ["x", "y", "z"] }
+        "ticketId": { "from": "literal", "value": "RST-20260611-001" },
+        "requestText": {
+          "from": "literal",
+          "value": "warehouse: East Hub, sku: SKU-42, shortage: 18, priority: high, customer: Aurora Market"
+        },
+        "candidateWarehouses": {
+          "from": "literal",
+          "value": [
+            { "warehouse": "East Hub", "available": 6, "distanceKm": 12, "sameDay": true },
+            { "warehouse": "South Hub", "available": 24, "distanceKm": 48, "sameDay": false },
+            { "warehouse": "North Hub", "available": 30, "distanceKm": 35, "sameDay": true },
+            { "warehouse": "West Hub", "available": 24, "distanceKm": 48, "sameDay": false }
+          ]
+        }
       },
-      "output": { "to": "initResult", "mergeStrategy": "replace" }
+      "output": { "to": "request", "mergeStrategy": "replace" }
     },
     {
-      "id": "decide",
-      "title": "2-条件判断 (if)",
-      "executor": { "type": "if" },
-      "dependsOn": ["init"],
-      "children": ["branch-body"],
-      "control": {
-        "condition": { "from": "literal", "value": true }
-      }
-    },
-    {
-      "id": "branch-body",
-      "title": "3-条件分支体 (manual)",
-      "executor": { "type": "manual" },
-      "dependsOn": ["init"],
-      "inputs": {
-        "msg": { "from": "literal", "value": "条件通过" }
-      },
-      "output": { "to": "branchResult", "mergeStrategy": "replace" }
-    },
-    {
-      "id": "fan-out",
-      "title": "4-并行分发 (parallel)",
-      "executor": { "type": "parallel" },
-      "dependsOn": ["branch-body"],
-      "children": ["task-http", "task-extract"]
-    },
-    {
-      "id": "task-http",
-      "title": "5-HTTP请求 (http)",
-      "executor": { "type": "http" },
-      "dependsOn": ["branch-body"],
-      "inputs": {
-        "url": { "from": "literal", "value": "https://example.test/all-node-types" },
-        "method": { "from": "literal", "value": "GET" },
-        "timeoutMs": { "from": "literal", "value": 10000 }
-      },
-      "output": { "to": "httpResult", "mergeStrategy": "replace" }
-    },
-    {
-      "id": "task-extract",
-      "title": "6-数据提取 (extractor)",
+      "id": "extract-order",
+      "title": "2-提取请求字段 (extractor)",
       "executor": {
         "type": "extractor",
         "config": {
           "sourceType": "text",
           "mode": "extract",
-          "fields": ["name", "age"]
+          "fields": ["warehouse", "sku", "shortage", "priority", "customer"]
         }
       },
-      "dependsOn": ["branch-body"],
+      "dependsOn": ["init"],
       "inputs": {
-        "input": { "from": "node.output", "nodeId": "init", "path": "data" }
+        "input": { "from": "node.output", "nodeId": "init", "path": "requestText" }
       },
-      "output": { "to": "extractResult", "mergeStrategy": "replace" }
+      "output": { "to": "orderInfo", "mergeStrategy": "replace" }
     },
     {
-      "id": "call-tool",
-      "title": "7-工具调用 (tool)",
-      "executor": { "type": "tool" },
+      "id": "task-http",
+      "title": "3-获取承运限制 (http)",
+      "executor": { "type": "http" },
+      "dependsOn": ["extract-order"],
+      "inputs": {
+        "url": { "from": "literal", "value": "https://carrier.example.test/capacity?route=east-region" },
+        "method": { "from": "literal", "value": "GET" },
+        "timeoutMs": { "from": "literal", "value": 10000 }
+      },
+      "output": { "to": "carrierStatus", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "carrier-fallback",
+      "title": "3b-承运服务降级回退 (manual)",
+      "executor": { "type": "manual" },
       "dependsOn": ["task-http"],
       "inputs": {
-        "toolName": { "from": "literal", "value": "echo" },
-        "params": {
+        "status": { "from": "literal", "value": "amber" },
+        "dispatchWindow": { "from": "literal", "value": "18:00" },
+        "lane": { "from": "literal", "value": "east-region" },
+        "source": { "from": "literal", "value": "fallback-policy" }
+      },
+      "output": { "to": "carrierFallback", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "merge-carrier",
+      "title": "3c-合并承运状态 (merge)",
+      "executor": {
+        "type": "merge",
+        "config": {
+          "strategy": "first-defined"
+        }
+      },
+      "dependsOn": ["task-http", "carrier-fallback"],
+      "inputs": {
+        "primary": { "from": "context", "path": "carrierStatus.body" },
+        "fallback": { "from": "context", "path": "carrierFallback" }
+      },
+      "output": { "to": "carrierDecision", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "screen-candidates",
+      "title": "4-筛选可调仓库 (list-op)",
+      "executor": {
+        "type": "list-op",
+        "config": {
+          "operation": "filter",
+          "expression": "item.available >= 18"
+        }
+      },
+      "dependsOn": ["extract-order"],
+      "inputs": {
+        "items": { "from": "node.output", "nodeId": "init", "path": "candidateWarehouses" }
+      },
+      "output": { "to": "eligibleWarehouses", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "sort-candidates",
+      "title": "5-按距离排序 (list-op)",
+      "executor": {
+        "type": "list-op",
+        "config": {
+          "operation": "sort",
+          "sortKey": "distanceKm",
+          "sortOrder": "asc"
+        }
+      },
+      "dependsOn": ["screen-candidates"],
+      "inputs": {
+        "items": { "from": "node.output", "nodeId": "screen-candidates" }
+      },
+      "output": { "to": "sortedWarehouses", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "select-plan",
+      "title": "6-生成调拨方案 (code)",
+      "executor": {
+        "type": "code",
+        "config": {
+          "script": "const order = input.order.data; const warehouses = input.warehouses; const carrier = input.carrier; const recommended = warehouses[0] ?? null; if (!recommended) { return { riskLevel: 'blocked', summary: '无可用仓库满足缺口', shortage: Number(order.shortage || 0) }; } return { ticketId: input.ticketId, sku: order.sku, customer: order.customer, priority: order.priority, shortage: Number(order.shortage || 0), requestedWarehouse: order.warehouse, recommendedWarehouse: recommended.warehouse, transferableUnits: Math.min(Number(order.shortage || 0), recommended.available), estimatedDistanceKm: recommended.distanceKm, sameDayEligible: !!recommended.sameDay, carrierWindow: carrier.dispatchWindow, carrierStatus: carrier.status, escalationNeeded: carrier.status !== 'green' || !recommended.sameDay, riskLevel: carrier.status === 'green' && recommended.sameDay ? 'normal' : 'attention' };"
+        }
+      },
+      "dependsOn": ["merge-carrier", "sort-candidates"],
+      "inputs": {
+        "ticketId": { "from": "node.output", "nodeId": "init", "path": "ticketId" },
+        "order": { "from": "node.output", "nodeId": "extract-order" },
+        "warehouses": { "from": "node.output", "nodeId": "sort-candidates" },
+        "carrier": { "from": "node.output", "nodeId": "merge-carrier" }
+      },
+      "output": { "to": "dispatchPlan", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "decide-escalation",
+      "title": "7-判断是否升级处理 (if)",
+      "executor": { "type": "if" },
+      "dependsOn": ["select-plan"],
+      "children": ["escalation-branch"],
+      "control": {
+        "condition": { "from": "node.output", "nodeId": "select-plan", "path": "escalationNeeded" }
+      }
+    },
+    {
+      "id": "escalation-branch",
+      "title": "8-升级分支体 (manual)",
+      "executor": { "type": "manual" },
+      "dependsOn": ["select-plan"],
+      "inputs": {
+        "escalation": {
           "from": "literal",
           "value": {
-            "message": "hello from tool node",
-            "source": "all-node-types"
+            "level": "ops-manager",
+            "reason": "承运窗口受限或无法当日达，需要人工确认是否拆单"
           }
         }
       },
-      "output": { "to": "toolResult", "mergeStrategy": "replace" }
+      "output": { "to": "escalationPlan", "mergeStrategy": "replace" }
     },
     {
-      "id": "ai-agent",
-      "title": "8-AI智能体 (agent)",
-      "executor": {
-        "type": "agent",
-        "config": {
-          "agentId": "all-node-types-agent"
+      "id": "fallback-escalation",
+      "title": "9-默认无需升级 (manual)",
+      "executor": { "type": "manual" },
+      "dependsOn": ["select-plan"],
+      "inputs": {
+        "escalation": {
+          "from": "literal",
+          "value": {
+            "level": "none",
+            "reason": "承运与仓配条件满足自动处置"
+          }
         }
       },
-      "dependsOn": ["task-extract"],
+      "output": { "to": "defaultEscalation", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "merge-escalation",
+      "title": "10-合并升级结论 (merge)",
+      "executor": {
+        "type": "merge",
+        "config": {
+          "strategy": "first-defined"
+        }
+      },
+      "dependsOn": ["decide-escalation", "fallback-escalation"],
+      "inputs": {
+        "branch": { "from": "context", "path": "escalationPlan" },
+        "fallback": { "from": "context", "path": "defaultEscalation" }
+      },
+      "output": { "to": "escalationDecision", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "call-tool",
+      "title": "11-生成通知载荷 (tool)",
+      "executor": { "type": "tool" },
+      "dependsOn": ["merge-escalation"],
+      "inputs": {
+        "toolName": { "from": "literal", "value": "echo" },
+        "params": {
+          "from": "node.output",
+          "nodeId": "select-plan"
+        }
+      },
+      "output": { "to": "notificationPayload", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "draft-message",
+      "title": "12-生成客户回复草稿 (template)",
+      "executor": {
+        "type": "template",
+        "config": {
+          "template": "工单 {{ticketId}}：已从 {{recommendedWarehouse}} 调拨 {{transferableUnits}} 件 {{sku}} 至 {{requestedWarehouse}}，承运窗口 {{carrierWindow}}，风险等级 {{riskLevel}}。"
+        }
+      },
+      "dependsOn": ["select-plan"],
+      "inputs": {
+        "ticketId": { "from": "node.output", "nodeId": "select-plan", "path": "ticketId" },
+        "recommendedWarehouse": { "from": "node.output", "nodeId": "select-plan", "path": "recommendedWarehouse" },
+        "transferableUnits": { "from": "node.output", "nodeId": "select-plan", "path": "transferableUnits" },
+        "sku": { "from": "node.output", "nodeId": "select-plan", "path": "sku" },
+        "requestedWarehouse": { "from": "node.output", "nodeId": "select-plan", "path": "requestedWarehouse" },
+        "carrierWindow": { "from": "node.output", "nodeId": "select-plan", "path": "carrierWindow" },
+        "riskLevel": { "from": "node.output", "nodeId": "select-plan", "path": "riskLevel" }
+      },
+      "output": { "to": "customerMessage", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "agent-summary",
+      "title": "13-AI生成处置摘要 (agent)",
+      "executor": { "type": "agent" },
+      "dependsOn": ["draft-message"],
       "inputs": {
         "user_prompt": {
           "from": "node.output",
-          "nodeId": "task-extract",
-          "path": "data"
+          "nodeId": "draft-message"
+        },
+        "system_prompt": {
+          "from": "literal",
+          "value": "你是供应链运营助理，请将调拨结果整理为简明的内部执行摘要。"
         }
       },
-      "output": { "to": "agentResult", "mergeStrategy": "replace" }
+      "output": { "to": "agentSummary", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "pause-for-sync",
+      "title": "14-等待外部同步 (delay)",
+      "executor": {
+        "type": "delay",
+        "config": {
+          "delayMs": 1
+        }
+      },
+      "dependsOn": ["agent-summary"],
+      "output": { "to": "delayState", "mergeStrategy": "replace" }
+    },
+    {
+      "id": "build-actions",
+      "title": "15-构建执行步骤 (code)",
+      "executor": {
+        "type": "code",
+        "config": {
+          "script": "const plan = input.plan; const escalation = input.escalation.escalation; return [ `从${plan.recommendedWarehouse}锁定${plan.transferableUnits}件${plan.sku}`, `在${plan.carrierWindow}前提交承运预约`, escalation.level === 'none' ? '自动通知客户确认补货' : `升级给${escalation.level}复核：${escalation.reason}` ];"
+        }
+      },
+      "dependsOn": ["pause-for-sync", "merge-escalation"],
+      "inputs": {
+        "plan": { "from": "node.output", "nodeId": "select-plan" },
+        "escalation": { "from": "node.output", "nodeId": "merge-escalation" }
+      },
+      "output": { "to": "actionDraft", "mergeStrategy": "replace" }
     },
     {
       "id": "iterate",
-      "title": "9-循环迭代 (loop)",
+      "title": "16-逐条执行步骤 (loop)",
       "executor": { "type": "loop" },
-      "dependsOn": ["call-tool", "ai-agent"],
+      "dependsOn": ["build-actions"],
       "children": ["loop-body"],
       "control": {
-        "loopOver": { "from": "node.output", "nodeId": "init", "path": "items" },
-        "itemName": "item"
+        "loopOver": { "from": "node.output", "nodeId": "build-actions" },
+        "itemName": "step"
       }
     },
     {
       "id": "loop-body",
-      "title": "10-循环体 (manual)",
+      "title": "17-记录执行步骤 (manual)",
       "executor": { "type": "manual" },
-      "dependsOn": ["call-tool", "ai-agent"],
+      "dependsOn": ["build-actions"],
       "inputs": {
-        "current": { "from": "frame.local", "path": "item" }
+        "step": { "from": "frame.local", "path": "step" }
       },
-      "output": { "to": "loopResult", "mergeStrategy": "append-array" }
+      "output": { "to": "actionItems", "mergeStrategy": "append-array" }
+    },
+    {
+      "id": "assign-report",
+      "title": "18-写入履约报告上下文 (assign)",
+      "executor": {
+        "type": "assign",
+        "config": {
+          "assignments": [
+            { "key": "plan", "to": "report.plan", "mergeStrategy": "replace" },
+            { "key": "message", "to": "report.customerMessage", "mergeStrategy": "replace" },
+            { "key": "summary", "to": "report.agentSummary", "mergeStrategy": "replace" }
+          ]
+        }
+      },
+      "dependsOn": ["agent-summary"],
+      "inputs": {
+        "plan": { "from": "node.output", "nodeId": "select-plan" },
+        "message": { "from": "node.output", "nodeId": "draft-message" },
+        "summary": { "from": "node.output", "nodeId": "agent-summary" }
+      }
     },
     {
       "id": "sub",
-      "title": "11-子工作流 (workflow)",
+      "title": "19-子流程汇总 (workflow)",
       "executor": { "type": "workflow" },
-      "dependsOn": ["loop-body"],
+      "dependsOn": ["iterate", "assign-report"],
       "children": ["sub-step"]
     },
     {
       "id": "sub-step",
-      "title": "12-子步骤 (manual)",
+      "title": "20-生成结案摘要 (manual)",
       "executor": { "type": "manual" },
-      "dependsOn": ["iterate"],
+      "dependsOn": ["iterate", "assign-report"],
       "inputs": {
-        "summary": { "from": "literal", "value": "子工作流完成" }
+        "summary": {
+          "from": "literal",
+          "value": {
+            "status": "ready-to-dispatch",
+            "owner": "supply-ops"
+          }
+        }
       },
-      "output": { "to": "subResult", "mergeStrategy": "replace" }
+      "output": { "to": "closureInfo", "mergeStrategy": "replace" }
     },
     {
       "id": "final",
-      "title": "13-最终输出 (return)",
+      "title": "21-输出履约结果 (return)",
       "executor": { "type": "return" },
       "dependsOn": ["sub-step"],
       "inputs": {
-        "manual": { "from": "context", "path": "initResult" },
-        "branch": { "from": "context", "path": "branchResult" },
-        "httpStatus": { "from": "context", "path": "httpResult.status" },
-        "extract": { "from": "context", "path": "extractResult.data" },
-        "tool": { "from": "context", "path": "toolResult" },
-        "agent": { "from": "context", "path": "agentResult" },
-        "loop": { "from": "context", "path": "loopResult" },
-        "sub": { "from": "context", "path": "subResult" }
+        "ticketId": { "from": "context", "path": "request.ticketId" },
+        "order": { "from": "context", "path": "orderInfo.data" },
+        "carrier": { "from": "context", "path": "carrierDecision" },
+        "plan": { "from": "context", "path": "dispatchPlan" },
+        "escalation": { "from": "context", "path": "escalationDecision.escalation" },
+        "notification": { "from": "context", "path": "notificationPayload" },
+        "customerMessage": { "from": "context", "path": "customerMessage" },
+        "agentSummary": { "from": "context", "path": "agentSummary" },
+        "actions": { "from": "context", "path": "actionItems" },
+        "closure": { "from": "context", "path": "closureInfo.summary" },
+        "report": { "from": "context", "path": "report" }
       },
       "output": { "to": "final", "mergeStrategy": "replace" }
     }

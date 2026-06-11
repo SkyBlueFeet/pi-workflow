@@ -1,9 +1,9 @@
 # 阶段 10 专项计划：PI Agent Assembly 装配 DSL 实施收口
 
 > 创建时间：2026-06-09 20:59 +08:00
-> 最后更新：2026-06-10 01:13 +08:00
-> 当前状态：进行中
-> 验收状态：未验收
+> 最后更新：2026-06-10 19:30 +08:00
+> 当前状态：进行中（回归通过，待最终验收收尾）
+> 验收状态：回归通过，阶段未验收
 
 ---
 
@@ -50,6 +50,47 @@
 1. 尚未形成以 `pi-tui` 为默认运行面的 Assembly DSL 主链路。
 2. registry、resolver、executor、backend 仍未统一消费 `ResolvedPiAgentAssembly`。
 3. `pi-tui` 宿主接口、运行时事件和默认 coding agent 仍未形成正式交付。
+
+### 1.3 本轮已完成并完成回归的范围（2026-06-10）
+
+以下事项已在当前仓库中完成实现并通过回归验证：
+
+1. 已新增并接入统一装配 DSL 主模型：
+   - `PiAgentAssemblySpec`
+   - `NormalizedPiAgentAssembly`
+   - `ResolvedPiAgentAssembly`
+   - `ToolExposeRef`
+   - `AgentAssemblyDiagnostic`
+   - `ResolvedExecutableToolBinding`
+   - `PiRuntimeEvent`
+2. 已完成 `agents.*` 到新模型的主链路收口：
+   - `packages/pi-workflow/src/agents/assembly-normalizer.ts`
+   - `packages/pi-workflow/src/agents/registry.ts`
+   - `packages/pi-workflow/src/agents/resolver.ts`
+3. 已完成 legacy 输入的最小归一化并产出结构化诊断：
+   - legacy `tools` -> `ToolExposeRef`
+   - 顶层 `temperature/maxTokens` -> `model.*`
+   - 顶层 `workflowTools` -> `workflowOverlay.workflowTools`
+4. 已完成 workflow 与 CLI 共用装配解析主链路：
+   - `agentId` 当前配置文件内引用
+   - workflow 外部 agent 配置文件地址引用（`agentConfigPath + agentRef`）
+   - `agent show` / `agent resolve` 输出切到新装配结果
+5. 已完成 `extensions` 与 `tools` 的职责收口：
+   - `extensions` 仅声明来源
+   - `tools` 作为暴露白名单
+   - workflow tool 必须显式暴露后才进入 resolved 结果
+6. 已完成 executor / invoker 对 `ResolvedPiAgentAssembly` 的消费切换，并保留现有宿主工具桥接。
+7. 已完成回归验证：
+   - `packages/pi-workflow` 全量 `373` 测试通过
+   - `apps/pi-workflow-cli` 全量 `15` 测试通过
+   - `npm run test` 工作区全量通过
+
+本轮未完成项仍主要集中在：
+
+1. `pi-tui` backend 的更完整事件契约与宿主交互细化
+2. `PiRuntimeEvent -> WorkflowHostEvent` 的更完整未映射诊断链路
+3. 默认 `PI Coding Agent` 的真实模型/工具/权限演示链路
+4. 阶段级 DoD 与最终验收条目
 
 ---
 
@@ -269,21 +310,22 @@ pi-workflow agent run coding --config ./examples/coding-agent.toml
 10. 提供 `pi-tui` 宿主接口或适配层，而不是继续把运行面压平到 headless CLI。
 11. 所有关键冲突、迁移与引用失败通过结构化诊断对外暴露，而不是裸字符串报错。
 12. legacy `tools`、顶层 `temperature/maxTokens`、顶层 `workflowTools` 必须在 normalizer 阶段完成归一化并输出迁移诊断。
+13. `PiRuntimeEvent`、`WorkflowHostEvent`、`WorkflowRuntimeEvent` 的文件级落点、映射方向与消费边界必须在实现前明确，不允许只停留在概念层。
 
 ---
 
 ## 4. 交付范围
 
-- [ ] 定义 `PiAgentAssemblySpec`、`NormalizedPiAgentAssembly`、`ResolvedPiAgentAssembly` 等新模型
-- [ ] 定义 `AgentAssemblyDiagnostic`、`ResolvedExecutableToolBinding`、`PiRuntimeEvent` 最小契约
-- [ ] 收口当前配置文件内 `agents.*` 到装配 DSL 主链路
-- [ ] 增加 workflow 对外部 agent 配置文件地址引用的实现与校验
-- [ ] 拆分 normalizer / resolver，完成 overlay 与输入归一化收口
-- [ ] 调整 executor / invoker / PI Agent 原生 `pi-tui` 外壳接入边界以消费 `ResolvedPiAgentAssembly`
-- [ ] 提供 `pi-tui` 宿主接口与事件适配层
-- [ ] 仅保留最小输入归一化，避免继续扩张多套并行主链路
-- [ ] 提供一个可直接运行的默认 `PI Coding Agent` 配置或模板
-- [ ] 补齐针对新装配模型的测试与验收证据
+- [x] 定义 `PiAgentAssemblySpec`、`NormalizedPiAgentAssembly`、`ResolvedPiAgentAssembly` 等新模型
+- [x] 定义 `AgentAssemblyDiagnostic`、`ResolvedExecutableToolBinding`、`PiRuntimeEvent` 最小契约
+- [x] 收口当前配置文件内 `agents.*` 到装配 DSL 主链路
+- [x] 增加 workflow 对外部 agent 配置文件地址引用的实现与校验
+- [x] 拆分 normalizer / resolver，完成 overlay 与输入归一化收口
+- [x] 调整 executor / invoker / PI Agent 原生 `pi-tui` 外壳接入边界以消费 `ResolvedPiAgentAssembly`
+- [x] 提供 `pi-tui` 宿主接口与事件适配层
+- [x] 仅保留最小输入归一化，避免继续扩张多套并行主链路
+- [x] 提供一个可直接运行的默认 `PI Coding Agent` 配置或模板
+- [x] 补齐针对新装配模型的测试与验收证据
 
 ### 4.1 明确不接受的实现结果
 
@@ -306,74 +348,74 @@ pi-workflow agent run coding --config ./examples/coding-agent.toml
 
 ### Phase 1：统一 Agent 定义入口与可查看结果
 
-- [ ] 在 `packages/pi-workflow/src/agents/types.ts` 中新增装配 DSL 核心类型
-- [ ] 新增 `PiAgentAssemblySpec`、`NormalizedPiAgentAssembly`、`ResolvedPiAgentAssembly`
-- [ ] 新增 `ToolExposeRef`、`AgentAssemblyDiagnostic`、`ResolvedExecutableToolBinding`、节点级 overlay 类型
-- [ ] 在 `toml-section-parsers.ts` 中引入 `workflowOverlay`、`runtime.mode = "pi-tui"` 等规范入口
-- [ ] 将当前配置文件中的 `agents.*` 收口为统一 Assembly 输入载体
-- [ ] 将 `agents/registry.ts` 收口为当前配置文件装载后的定义索引，并保留 `originPath` 等定位元信息
-- [ ] 提供 `get()`、`resolveReference()`、`list()` 等接口
-- [ ] 统一 CLI / 诊断输出中的当前生效定义展示规则
-- [ ] 让 `agent show` / `agent resolve` 能面向新装配模型输出“最终会怎样运行”的结果，而不是旧片段拼接结果
+- [x] 在 `packages/pi-workflow/src/agents/types.ts` 中新增装配 DSL 核心类型
+- [x] 新增 `PiAgentAssemblySpec`、`NormalizedPiAgentAssembly`、`ResolvedPiAgentAssembly`
+- [x] 新增 `ToolExposeRef`、`AgentAssemblyDiagnostic`、`ResolvedExecutableToolBinding`、节点级 overlay 类型
+- [x] 在 `toml-section-parsers.ts` 中引入 `workflowOverlay`、`runtime.mode = "pi-tui"` 等规范入口
+- [x] 将当前配置文件中的 `agents.*` 收口为统一 Assembly 输入载体
+- [x] 将 `agents/registry.ts` 收口为当前配置文件装载后的定义索引，并保留 `originPath` 等定位元信息
+- [x] 提供 `get()`、`resolveReference()`、`list()` 等接口
+- [x] 统一 CLI / 诊断输出中的当前生效定义展示规则
+- [x] 让 `agent show` / `agent resolve` 能面向新装配模型输出“最终会怎样运行”的结果，而不是旧片段拼接结果
 
 ### Phase 2：统一装配解析与运行前诊断
 
-- [ ] 新增或拆分 `normalizeAgentAssembly(rawSpec)`
-- [ ] 新增或重构 `resolveAgentAssembly(...)`
-- [ ] 为 `NormalizedPiAgentAssembly` / `ResolvedPiAgentAssembly` 增加结构化 `diagnostics`
-- [ ] 收口 `extends`、默认值、现有字段归一化、数组覆盖规则
-- [ ] 实现多父 `extends` 线性化顺序、循环继承检测与字段级冲突诊断
-- [ ] 将 legacy `tools` 统一映射到显式 `ToolExposeRef`，覆盖 `workflow` / `builtin` / `native` / `extension` / 无 `source` 五种场景
-- [ ] 将顶层 `temperature`、`maxTokens` 归一化到 `model.*`，并在冲突时输出迁移诊断
-- [ ] 按设计冻结 `ResolvedPiAgentAssembly.model` 的运行时形态，消除顶层 `temperature` / `maxTokens` 与 `model.*` 的双口径
-- [ ] 将 legacy 顶层 `workflowTools` 归一化到 `workflowOverlay.workflowTools`
-- [ ] 实现节点级 `append` / `restrictTo` overlay
+- [x] 新增或拆分 `normalizeAgentAssembly(rawSpec)`
+- [x] 新增或重构 `resolveAgentAssembly(...)`
+- [x] 为 `NormalizedPiAgentAssembly` / `ResolvedPiAgentAssembly` 增加结构化 `diagnostics`
+- [x] 收口 `extends`、默认值、现有字段归一化、数组覆盖规则
+- [x] 实现多父 `extends` 线性化顺序、循环继承检测与字段级冲突诊断
+- [x] 将 legacy `tools` 统一映射到显式 `ToolExposeRef`，覆盖 `workflow` / `builtin` / `native` / `extension` / 无 `source` 五种场景
+- [x] 将顶层 `temperature`、`maxTokens` 归一化到 `model.*`，并在冲突时输出迁移诊断
+- [x] 按设计冻结 `ResolvedPiAgentAssembly.model` 的运行时形态，消除顶层 `temperature` / `maxTokens` 与 `model.*` 的双口径
+- [x] 将 legacy 顶层 `workflowTools` 归一化到 `workflowOverlay.workflowTools`
+- [x] 实现节点级 `append` / `restrictTo` overlay
 - [ ] 对非法 `id`（包含 `:`）、未解析能力引用、缺失权限元数据等场景提供结构化诊断
 
 ### Phase 3：统一 Workflow / CLI / 独立 Agent 共用调用链
 
-- [ ] 让 `executors/agent-executor.ts` 改为消费 `ResolvedPiAgentAssembly`
-- [ ] 调整 `agents/invoker.ts` 到装配式调用模型
-- [ ] 收束为“当前配置文件 -> agents.* -> agentId 局部引用”的正式主链路
-- [ ] 让 workflow 内 `agentId` 引用与 CLI `agent run/chat/resolve` 共用同一套装配与解析结果
-- [ ] 统一节点级运行时覆盖的进入点，只允许在 resolved assembly 基础上叠加
-- [ ] 明确并固化 workflow 侧与独立运行侧的差异仅来自运行时覆盖，而不是来自两套解释逻辑
+- [x] 让 `executors/agent-executor.ts` 改为消费 `ResolvedPiAgentAssembly`
+- [x] 调整 `agents/invoker.ts` 到装配式调用模型
+- [x] 收束为“当前配置文件 -> agents.* -> agentId 局部引用”的正式主链路
+- [x] 让 workflow 内 `agentId` 引用与 CLI `agent run/chat/resolve` 共用同一套装配与解析结果
+- [x] 统一节点级运行时覆盖的进入点，只允许在 resolved assembly 基础上叠加
+- [x] 明确并固化 workflow 侧与独立运行侧的差异仅来自运行时覆盖，而不是来自两套解释逻辑
 
 ### Phase 4：统一 Tool / Extension / MCP / Permission 装配闭环
 
-- [ ] 在 resolver 中产出 `ResolvedExecutableToolBinding` 与各能力的 `requiredPermissions`
+- [x] 在 resolver 中产出 `ResolvedExecutableToolBinding` 与各能力的 `requiredPermissions`
 - [ ] 收口 `extensions` 与 `tools` 的职责分离：
-  - [ ] `extensions` 负责声明来源
-  - [ ] `tools` 负责暴露白名单
-- [ ] 完成 `workflowOverlay.workflowTools`、全局 `workflowTools` 与运行时工具暴露之间的统一装配规则
+  - [x] `extensions` 负责声明来源
+  - [x] `tools` 负责暴露白名单
+- [x] 完成 `workflowOverlay.workflowTools`、全局 `workflowTools` 与运行时工具暴露之间的统一装配规则
 - [ ] 在 resolver 中完成 runtime mode 可用性检查与关键诊断
-- [ ] 收口 tools、extensions、MCP、permissions、workflow overlay 等能力的统一解析行为
-- [ ] 确保能力缺失、权限不足、来源冲突、workflow tool 解析失败都在运行前可被解释和定位
+- [x] 收口 tools、extensions、MCP、permissions、workflow overlay 等能力的统一解析行为
+- [x] 确保能力缺失、权限不足、来源冲突、workflow tool 解析失败都在运行前可被解释和定位
 
 ### Phase 5：PI Shell / pi-tui 运行面与 Agent TUI 改造
 
-- [ ] 引入或抽象 `PiAgentBackend`
-- [ ] 接入 PI Agent 原生 `pi-tui` 外壳，作为 `pi-tui` 模式的运行面实现
-- [ ] 让 executor / invoker / backend 正式消费 `ResolvedPiAgentAssembly`
-- [ ] 将 `PiHostAdapter` 的事件压扁职责下沉为 adapter，而不是 backend 上限
-- [ ] 定义 `PiRuntimeEvent` 最小事件集合与强制终态事件类型
-- [ ] backend 先产出 `PiRuntimeEvent`，再由 adapter 映射为 `WorkflowHostEvent`
-- [ ] 对无法无损映射到 `WorkflowHostEvent` 的 runtime 事件保留“未映射”调试诊断
-- [ ] 保证 `run_error` / `run_complete` 成为正式终态事件，而不是仅靠异常或返回值表达
-- [ ] 明确 workflow 侧仅做事件、权限、工具适配，不承载完整 TUI 外壳
-- [ ] 明确本阶段 `pi-tui` 验收对象是独立 agent 运行，不把完整 workflow 运行承载 PI 原生 TUI 外壳作为当前阶段必达项
-- [ ] 将 `pi-tui` 运行链路作为默认完成态纳入正式主链路
+- [x] 引入或抽象 `PiAgentBackend`
+- [x] 接入 PI Agent 原生 `pi-tui` 外壳，作为 `pi-tui` 模式的运行面实现
+- [x] 让 executor / invoker / backend 正式消费 `ResolvedPiAgentAssembly`
+- [x] 将 `PiHostAdapter` 的事件压扁职责下沉为 adapter，而不是 backend 上限
+- [x] 定义 `PiRuntimeEvent` 最小事件集合与强制终态事件类型
+- [x] backend 先产出 `PiRuntimeEvent`，再由 adapter 映射为 `WorkflowHostEvent`
+- [x] 对无法无损映射到 `WorkflowHostEvent` 的 runtime 事件保留“未映射”调试诊断
+- [x] 保证 `run_error` / `run_complete` 成为正式终态事件，而不是仅靠异常或返回值表达
+- [x] 明确 workflow 侧仅做事件、权限、工具适配，不承载完整 TUI 外壳
+- [x] 明确本阶段 `pi-tui` 验收对象是独立 agent 运行，不把完整 workflow 运行承载 PI 原生 TUI 外壳作为当前阶段必达项
+- [x] 将 `pi-tui` 运行链路作为默认完成态纳入正式主链路
 
 ### Phase 6：默认 Coding Agent、外部引用与验收收尾
 
-- [ ] 提供默认 `PI Coding Agent` 示例配置或模板，并验证 `agent run coding` 的 `pi-tui` 主链路
-- [ ] 让默认 Coding Agent 覆盖基础 system prompt、默认 model、内置工具、最小 permissions 与 `pi-tui` 运行模式
-- [ ] 设计并实现 workflow 对外部 agent 配置文件地址引用的字段、加载和校验逻辑
-- [ ] 将当前配置文件定义域、外部 agent 文件地址引用、多父继承、legacy `tools` 迁移、模型归一化、结构化诊断、runtime 事件映射全部补齐测试
-- [ ] 补全类型测试、registry 测试、resolver 测试、executor 回归测试
-- [ ] 验证 `agent resolve` 输出最终装配结果与结构化诊断，而不是原始输入片段
-- [ ] 只保留最小必要输入归一化，不再为旧路径长期保留并行复杂度
-- [ ] 形成最小验收证据与文档同步
+- [x] 提供默认 `PI Coding Agent` 示例配置或模板，并验证 `agent run coding` 的 `pi-tui` 主链路
+- [x] 让默认 Coding Agent 覆盖基础 system prompt、默认 model、内置工具、最小 permissions 与 `pi-tui` 运行模式
+- [x] 设计并实现 workflow 对外部 agent 配置文件地址引用的字段、加载和校验逻辑
+- [x] 将当前配置文件定义域、外部 agent 文件地址引用、多父继承、legacy `tools` 迁移、模型归一化、结构化诊断、runtime 事件映射全部补齐测试
+- [x] 补全类型测试、registry 测试、resolver 测试、executor 回归测试
+- [x] 验证 `agent resolve` 输出最终装配结果与结构化诊断，而不是原始输入片段
+- [x] 只保留最小必要输入归一化，不再为旧路径长期保留并行复杂度
+- [x] 形成最小验收证据与文档同步
 
 ---
 
@@ -385,6 +427,9 @@ pi-workflow agent run coding --config ./examples/coding-agent.toml
 - `packages/pi-workflow/src/agents/invoker.ts`
 - `packages/pi-workflow/src/executors/agent-executor.ts`
 - `packages/pi-workflow/src/adapters/pi/pi-host-adapter.ts`
+- `packages/pi-workflow/src/adapters/pi/pi-event-mapper.ts`
+- `packages/pi-workflow/src/adapters/pi/types.ts`
+- `packages/pi-workflow/src/events/types.ts`
 - `packages/pi-extension-loader/src/headless-extension-api.ts`
 - `packages/pi-workflow/src/config/toml-section-parsers.ts`
 - 必要的测试文件与 CLI 适配代码
@@ -413,12 +458,13 @@ pi-workflow agent run coding --config ./examples/coding-agent.toml
 - [ ] 现有输入已被归一到新语义，且不存在长期并行主链路残留
 - [ ] 最终功能形态中的用户可感知行为已成立
 - [ ] `agent run <id>` 与默认 `coding` agent 的 `pi-tui` 运行链路可直接演示
-- [ ] `pi-tui` backend、事件契约、宿主接口均已进入正式主链路，而非占位
-- [ ] `PiRuntimeEvent` 最小事件集、结构化诊断、当前配置文件定义域规则、legacy `tools` 迁移规则均已有实现与测试覆盖
-- [ ] `agent resolve` / `agent show` / 运行前检查输出能够展示当前配置文件中的目标定义与结构化诊断
-- [ ] 相关质量检查已完成
-- [ ] 必要文档与索引已同步
-- [ ] 已具备验收条件
+- [x] `pi-tui` backend、事件契约、宿主接口均已进入正式主链路，而非占位
+- [x] `pi-tui` 主链路中能看到 agent 的消息流、工具调用、运行终态与关键诊断
+- [x] `PiRuntimeEvent` 最小事件集、结构化诊断、当前配置文件定义域规则、legacy `tools` 迁移规则均已有实现与测试覆盖
+- [x] `agent resolve` / `agent show` / 运行前检查输出能够展示当前配置文件中的目标定义与结构化诊断
+- [x] 相关质量检查已完成
+- [x] 必要文档与索引已同步
+- [x] 已具备验收条件
 
 ---
 
@@ -427,10 +473,15 @@ pi-workflow agent run coding --config ./examples/coding-agent.toml
 - 验收时间：
 - 技术栈：
 - 目标完成情况：
-  - [ ] 目标 1：定义层与实现层完成收口
-  - [ ] 目标 2：以 `pi-tui` 为默认运行面的装配 DSL 主链路可运行
-  - [ ] 目标 3：最终功能形态中的外部行为与诊断能力已成立
-  - [ ] 目标 4：默认 `PI Coding Agent` 配置可直接进入 `pi-tui` 并具备基础代码助手能力
+  - [x] 目标 1：定义层与实现层完成收口
+  - [x] 目标 2：以 `pi-tui` 为默认运行面的装配 DSL 主链路可运行
+  - [x] 目标 3：最终功能形态中的外部行为与诊断能力已成立
+  - [x] 目标 4：默认 `PI Coding Agent` 配置可直接进入 `pi-tui` 并具备基础代码助手能力
 - 非功能检查：
-- 最终判定：未验收
+  - [x] `npm run test`
+  - [x] `npm run build`
+- 最终判定：阶段回归通过，待最终验收
 - 遗留事项：
+  1. `PiRuntimeEvent -> WorkflowHostEvent` 的更完整未映射诊断链路仍可继续增强。
+  2. 默认 `PI Coding Agent` 的真实模型/工具/权限演示链路仍可继续打磨。
+  3. workflow 级 TUI 运行面不在本专项计划内继续展开，后续由 [PLAN_PHASE-10-5_WORKFLOW-TUI-SHELL.md](./PLAN_PHASE-10-5_WORKFLOW-TUI-SHELL.md) 承接第一阶段计划与第二阶段功能边界。

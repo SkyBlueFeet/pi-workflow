@@ -1,0 +1,25 @@
+---
+### 🕒 23:00 阶段 15：pi-studio 宿主控制台 — 骨架完成
+
+- **任务详情**: 完成 PLAN_PHASE-15 全部 7 个子阶段，建立 pi-studio-cli CLI 工程骨架、控制台 shell、catalog 服务、studio-console 内置 agent 资源、创作与执行模块边界。
+- **核心逻辑**:
+  - **CLI 入口** (`apps/pi-studio-cli/src/cli.ts`): `pi-studio` 默认显示 help，`--console` 进入交互式控制台
+  - **控制台 shell** (`studio-console-shell.ts`): 基于 Node.js readline 的 REPL，slash command 路由 + 自然语言 AI 助手分流
+  - **命令路由** (`studio-command-router.ts`): 解析 `/` 前缀命令输入，支持 `/help`、`/workflows`、`/agents`、`/skills`、`/tools`、`/resources`、`/runs`、`/create-workflow`、`/create-agent`
+  - **状态模型** (`studio-state.ts`): 不可变状态转换，管理视图/输入模式/消息历史/错误
+  - **渲染器** (`studio-renderer.ts`): 终端视图渲染，ANSI 格式化输出
+  - **6 个 catalog 服务**: Workflow / Agent / Skill / Tool / Resource / Run — 统一骨架接口，预留真实数据源接入点
+  - **2 个 authoring 服务**: WorkflowAuthoringService / AgentAuthoringService — 草稿生成 -> 预览 -> 校验 -> 确认 -> 落盘链路
+  - **studio-console builtin agent**: `studio-console.toml` 定义控制台 AI 助手（skills: system-browse / draft-generator; tools: list_*/create_*_draft）
+  - **资源打包** (`install-studio-resources.ts`): `PI_STUDIO_HOME` 环境变量控制安装目标，幂等复制
+  - **执行器** (`studio-executor.ts`): 预留 workflow.run/resume/trace/inspect 和 agent.run/once/resolve 接线点
+  - **模块边界**: `commands/studio.ts` / `commands/workflow.ts` / `commands/agent.ts` 清晰划分三组对外命令的内部边界
+- **测试结果**:
+  - pi-studio-cli: 6 个测试文件, 66 个测试全部通过
+  - pi-workflow-cli: 10 个测试文件, 31 个测试全部通过（兼容性保持）
+  - TypeScript 编译零错误
+- **后续关注**:
+  - catalog 服务骨架需要后续阶段接入真实的 registry / loader / extension-catalog 数据源
+  - studio-console AI 助手需要接入真实的 agent invoker（目前为占位 handler）
+  - `/create-workflow` 和 `/create-agent` 的 AI 生成链路需要后续阶段实现
+  - pi-workflow-cli 的 bin 入口（pi-workflow / pi-agent）保持原有工程不变，pi-studio-cli 只提供 pi-studio 入口

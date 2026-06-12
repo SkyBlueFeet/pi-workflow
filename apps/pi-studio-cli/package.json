@@ -1,0 +1,43 @@
+{
+  "name": "pi-studio-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "pi-studio 产品级宿主控制台 CLI 工程 — 承载 pi-studio / pi-workflow / pi-agent 三组命令",
+  "license": "MIT",
+  "author": "skybluefeet <yakun1593@163.com>",
+  "homepage": "https://github.com/SkyBlueFeet/pi-workflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SkyBlueFeet/pi-workflow.git",
+    "directory": "apps/pi-studio-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/SkyBlueFeet/pi-workflow/issues"
+  },
+  "keywords": [
+    "pi-studio",
+    "cli",
+    "workflow",
+    "agent",
+    "console"
+  ],
+  "type": "module",
+  "bin": {
+    "pi-studio": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@pi-workflow/core": "*",
+    "@pi-workflow/extension-loader": "*",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

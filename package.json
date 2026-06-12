@@ -18,6 +18,7 @@
     "packages/pi-package-adapter",
     "packages/pi-extension-loader",
     "packages/pi-builtin-tools",
+    "apps/pi-studio-cli",
     "apps/pi-workflow-cli",
     "apps/pi-workflow-web"
   ],

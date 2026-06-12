@@ -60,6 +60,7 @@ export class NodeExecutor {
     };
     const requiredCap = capabilityMap[node.kind];
     if (!requiredCap) return { allowed: true };
+    const piHost = this.deps.host as import("../adapters/pi/types.js").WorkflowPiHostCapabilities;
     const actorType = node.kind === "http" ? "tool" : (node.kind === "tool" ? "tool" : (node.kind === "agent" ? "agent" : "workflow"));
     const result = evaluateCapability(config?.security, requiredCap);
     this.deps.securityAuditor.record(runId, requiredCap, result.allowed ? "allow" : "deny", result.reason, { nodeId: node.id, actorType });
@@ -72,7 +73,7 @@ export class NodeExecutor {
         actorLabel: `节点 ${node.id}`,
         resource: node.kind,
         cwd: config?.baseDir,
-        requestUserInput: (this.deps.host as import("../adapters/pi/types.js").WorkflowPiHostCapabilities).requestUserInput,
+        requestUserInput: piHost.requestUserInput?.bind(piHost),
       });
       if (approval.granted) {
         const approvalReason = describeApprovalMode(approval.mode);

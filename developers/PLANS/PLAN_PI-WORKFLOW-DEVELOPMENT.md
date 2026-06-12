@@ -1,8 +1,8 @@
 ---
 **版本锚点**
 - 创建时间：2026-05-26 10:00 +08:00
-- 最后更新：2026-06-10 19:30 +08:00
-- 代码快照日期：2026-05-30
+- 最后更新：2026-06-12 22:10 +08:00
+- 代码快照日期：2026-06-12
 
 ---
 
@@ -95,6 +95,8 @@ PI 接入原则：
 | 阶段 11 | [软件安全策略](./pi-workflow-phases/PLAN_PHASE-11_SOFTWARE-SECURITY-POLICY.md) | 权限模型、预检、降权传播、审计、PI 生态安全适配 |
 | 阶段 12 | [PWB Bundle 运行态](./pi-workflow-phases/PLAN_PHASE-12_PWB-BUNDLE-RUNTIME.md) | 建立目录作者态到 `pwb` 运行态的 bundle 构建、加载与运行主链路 |
 | 阶段 13 | [PI 宿主工具与基础工具迁移](./pi-workflow-phases/PLAN_PHASE-13_PI-HOST-TOOLS-AND-FILE-CAPABILITIES.md) ✅ | 打通 `callTool()`、迁入无头 `read/write/edit/ls/grep/find`，建立 workflow `tool` 节点与宿主基础工具闭环 |
+| 阶段 14 | [Web 工作流节点编辑器](./pi-workflow-phases/PLAN_PHASE-14_WEB-WORKFLOW-EDITOR.md) | 交付浏览器中的可视化 workflow 编辑器，承接节点创建、属性编辑、连线与导出 |
+| 阶段 15 | [pi-studio 宿主级控制台](./pi-workflow-phases/PLAN_PHASE-15_PI-STUDIO-CONSOLE.md) | 交付 `pi-studio` 产品入口、`--console` 控制台模式、`studio-console` 特殊 agent 与宿主级 catalog / 创作主链路 |
 
 ## 5. 阶段准入规则
 
@@ -186,7 +188,7 @@ PI 接入原则：
 1. 真实 PI npm SDK / AgentSession 入口仍受私有包可用性限制，当前以 mock/adapter contract 闭环为准。
 2. `resources/` 独立资源模块、PI package resolver/resource bridge 仍待真实 SDK 入口稳定后细化。
 3. `WorkflowDefine -> pi-native DSL` renderer 与旧格式迁移命令未作为当前阶段必达项完成。
-4. Web/TUI 可视化未实现，当前阶段 8 以 SDK model + CLI 调试入口作为验收边界。
+4. workflow TUI 第二阶段与宿主级 `pi-studio` 控制台仍未实现；Web workflow editor 已作为阶段 14 独立工程推进中，当前不计入阶段 8 既有验收边界。
 5. ✅ 阶段 9 PI 生态集成已完成初版交付：包括 TOML 配置、PI 包管理器(stub)、资源加载、基于 PI 的 extension 桥接(stub)与信任模型。
 6. 阶段 10 已有部分实现：当前已落地 workflow 内命名 agent 配置、workflow tool、递归控制与 CLI agent，但阶段目标已按“独立自定义智能体”新口径重写，尚未完成宿主级独立运行入口与 workflow 复用收口。
    - 相关定义文档：`developers/DESIGN/DESIGN_PI-AGENT-ASSEMBLY.md`
@@ -197,6 +199,8 @@ PI 接入原则：
 10. ✅ 阶段 13 PI 宿主工具与基础工具迁移已完成：包括 `PiHostAdapter.callTool()` 实现、`read/write/edit/ls/grep/find` 六个无头基础工具迁入、`register.ts` 统一注册入口、CLI 装配、权限接入、`ToolExecutor` 宿主回退链路闭环、新增 11 个测试项和 6 个 workflow fixture。
 11. workflow 级 TUI 第一阶段已形成正式观察型运行面；阶段 10.5 第二阶段仍处于规划中，后续按专项计划推进。
 12. 全部阶段 0-13 主链路已完成。后续可继续补更多专用端到端测试、workflow TUI 与真实 PI 宿主对接，但不影响当前已完成阶段主链路状态。
+13. 阶段 14 Web workflow editor 已形成独立前端工程 `apps/pi-workflow-web`，当前已可创建、加载、导出、整理布局与校验。
+14. 新增阶段 15 `pi-studio` 宿主级控制台规划：默认 `pi-studio` 显示 help，`pi-studio --console` 进入控制台；`pi-workflow` 与 `pi-agent` 继续保留为外部命令。
 
 阶段 6 当前状态：
 
@@ -232,6 +236,10 @@ PI 接入原则：
 
 阶段 13 在阶段 9.5 的工具桥接、阶段 11 的权限模型和阶段 12 的运行主链路稳定后进入。阶段 13 按“宿主 `callTool()` -> built-in 基础工具迁入 -> 权限接入 -> workflow fixture 验证”顺序推进，目标是把 PI 宿主工具能力从接口占位推进为 workflow 可直接消费的正式能力。该阶段已于 2026-05-30 完成。
 
+阶段 14 以浏览器中的可视化 workflow 编辑器为主目标，当前独立前端工程已建立；后续继续按专项计划补齐测试、保存策略与文档状态同步。
+
+阶段 15 在阶段 10 的独立 agent 主链路、阶段 10.5 的控制台 / shell 经验、阶段 7 的 authoring 能力与阶段 13 的宿主工具能力稳定后进入。阶段 15 当前的推进顺序为“`pi-studio` CLI 入口 -> 控制台 shell 与 slash command -> catalog 服务 -> `studio-console` 特殊 agent -> `/create-workflow` 与 `/create-agent` 创作主链路 -> 执行与诊断接线 -> 兼容与验收收尾”。
+
 ## 11. 验收结论
 
 - 验收时间：2026-05-30（阶段 13 已验收）
@@ -245,7 +253,9 @@ PI 接入原则：
 - 阶段 11 状态：主链路已完成，后续可继续细化权限 scope、真实 PI 权限桥接与可视化表现。
 - 阶段 12 状态：主链路已完成。包含 zip `pwb` 构建/加载、独立 `resources/` 模块、`inline` 资源内联到 document、`archive` 资源 zip 归档、强制哈希与大小校验、CLI `build`/`run`/`inspect` 命令、临时 bundle 自动清理，以及 build/load/run/inspect 四类测试矩阵。
 - 阶段 13 状态：✅ 已完成。`PiHostAdapter.callTool()` 已实现（工具注册表/查找/权限/执行），六个无头基础工具已迁入，权限检查已接入，`ToolExecutor` 宿主回退闭环已形成并通过测试。
-- 遗留事项：真实 PI npm SDK、WorkflowDefine DSL renderer、Web/TUI viewer。
+- 阶段 14 状态：进行中。`pi-workflow-web` 已可独立构建运行，当前仍需补更多测试与文档状态收口。
+- 阶段 15 状态：规划中。`pi-studio` 将作为宿主级控制台入口，`pi-workflow` 与 `pi-agent` 外部命令继续保留。
+- 遗留事项：真实 PI npm SDK、WorkflowDefine DSL renderer、workflow TUI 第二阶段、pi-studio 控制台。
 
 ## 12. 计划维护规则
 

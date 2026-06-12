@@ -3,6 +3,7 @@ import type { WorkflowConfig, WorkflowDefinitionIR, WorkflowHostCapabilities } f
 import { createWorkflowExecutorRegistry } from "./create-workflow-executor-registry.js";
 import { createWorkflowHost } from "./create-workflow-host.js";
 import { resolveCliWorkflowDefaultModel } from "../env.js";
+import { getWorkflowTerminalCoordinator } from "../display/workflow-terminal-coordinator.js";
 
 export interface CreateWorkflowRuntimeContextOptions {
   readonly ir: WorkflowDefinitionIR;
@@ -42,6 +43,7 @@ export async function createWorkflowRuntimeContext(
     scanExtensions: options.scanExtensions,
     debug: options.debug,
     config,
+    terminalCoordinator: getWorkflowTerminalCoordinator(),
     yolo: options.yolo,
     onDebug: options.onDebug,
   });

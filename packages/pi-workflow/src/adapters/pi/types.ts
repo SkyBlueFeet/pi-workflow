@@ -5,6 +5,12 @@ import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from 
 import type { WorkflowSessionCheckpoint } from "../../store/types.js";
 import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 
+/** 与具体终端实现解耦的提问显示协调器，用于在提问前暂停/清理进度区。 */
+export interface WorkflowPromptDisplayCoordinator {
+  beforePrompt(lines: readonly string[]): void;
+  afterPrompt(): void;
+}
+
 /** 向 PI Agent 发起的运行请求。 */
 export interface WorkflowAgentRequest {
   readonly nodeId: string;

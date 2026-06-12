@@ -60,6 +60,9 @@ export async function runCommand(args: string[]): Promise<void> {
       input,
       config: runtimeContext.config,
       title: loaded.document.title || loaded.document.id,
+      display: {
+        showFinalOutput: debug,
+      },
       loadRunState: (workflowRunId) => runtimeContext.store.loadRunState(workflowRunId),
     });
     if (result.exitCode !== 0) {

@@ -6,6 +6,7 @@ import type {
   WorkflowHostCapabilities,
   WorkflowSecurityConfig,
 } from "@pi-workflow/core";
+import type { WorkflowTerminalCoordinator } from "../display/workflow-terminal-coordinator.js";
 
 export interface CreateWorkflowHostOptions {
   readonly hasAgentNode: boolean;
@@ -14,6 +15,7 @@ export interface CreateWorkflowHostOptions {
   readonly scanExtensions: boolean;
   readonly debug: boolean;
   readonly config?: WorkflowConfig;
+  readonly terminalCoordinator?: WorkflowTerminalCoordinator;
   readonly yolo: boolean;
   readonly onDebug?: (message: string, ...args: readonly unknown[]) => void;
 }
@@ -125,6 +127,7 @@ export async function createWorkflowHost(
     nativeTools,
     extensionTools,
     builtinTools,
+    terminalCoordinator: options.terminalCoordinator,
     permissionCheck: (capability, resource) => {
       const result = evaluateCapability(
         config?.security,

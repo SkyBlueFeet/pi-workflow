@@ -1,8 +1,8 @@
 ---
 **版本锚点**
 - 创建时间：2026-05-26 10:00 +08:00
-- 最后更新：2026-06-10 19:30 +08:00
-- 代码快照日期：2026-05-30
+- 最后更新：2026-06-12 22:10 +08:00
+- 代码快照日期：2026-06-12
 
 ---
 
@@ -39,6 +39,7 @@
 - [阶段 12：PWB Bundle 运行态](./PLAN_PHASE-12_PWB-BUNDLE-RUNTIME.md)
 - [阶段 13：PI 宿主工具与基础工具迁移](./PLAN_PHASE-13_PI-HOST-TOOLS-AND-FILE-CAPABILITIES.md) — 规划中，聚焦 `callTool()`、`read/write/edit/ls/grep/find` 迁移与 `tool` 节点宿主闭环
 - [阶段 14：Web 工作流节点编辑器](./PLAN_PHASE-14_WEB-WORKFLOW-EDITOR.md) — 开发中，React + ReactFlow 可视化编辑器已可独立运行，当前“保存”口径为浏览器导出下载
+- [阶段 15：pi-studio 宿主级控制台](./PLAN_PHASE-15_PI-STUDIO-CONSOLE.md) — 规划中，聚焦 `pi-studio` 产品入口、`--console` 控制台模式、`studio-console` 特殊 agent 与宿主级 catalog / 创作主链路
 
 总览文档：
 

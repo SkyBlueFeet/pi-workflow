@@ -5,7 +5,11 @@ import type {
   WorkflowRunState,
   WorkflowRuntime,
 } from "@pi-workflow/core";
-import { createWorkflowShell } from "../tui/workflow-tui-shell.js";
+import { createWorkflowDisplayShell } from "../display/workflow-display-shell.js";
+import type {
+  WorkflowDisplayMode,
+  WorkflowDisplayRenderOptions,
+} from "../display/workflow-display-renderer.js";
 
 export interface RunWorkflowRequest {
   readonly runtime: WorkflowRuntime;
@@ -13,7 +17,8 @@ export interface RunWorkflowRequest {
   readonly input?: Record<string, unknown>;
   readonly config?: WorkflowConfig;
   readonly title?: string;
-  readonly mode?: "text";
+  readonly mode?: WorkflowDisplayMode;
+  readonly display?: WorkflowDisplayRenderOptions;
   readonly loadRunState?: (workflowRunId: string) => Promise<WorkflowRunState | undefined>;
 }
 
@@ -23,7 +28,8 @@ export interface ResumeWorkflowRequest {
   readonly interactionInput: unknown;
   readonly config?: WorkflowConfig;
   readonly title?: string;
-  readonly mode?: "text";
+  readonly mode?: WorkflowDisplayMode;
+  readonly display?: WorkflowDisplayRenderOptions;
   readonly loadRunState?: (workflowRunId: string) => Promise<WorkflowRunState | undefined>;
 }
 
@@ -36,10 +42,11 @@ export interface WorkflowRunnerResult {
 export async function runWorkflowWithShell(
   request: RunWorkflowRequest | ResumeWorkflowRequest,
 ): Promise<WorkflowRunnerResult> {
-  const mode = request.mode ?? "text";
-  const shell = createWorkflowShell({
+  const mode = request.mode ?? "progress";
+  const shell = createWorkflowDisplayShell({
     title: request.title,
     mode,
+    renderOptions: request.display,
   });
 
   shell.begin();

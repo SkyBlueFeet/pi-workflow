@@ -16,11 +16,13 @@ import type {
 } from "./types.js";
 import type { CustomAgentInvokeRequest } from "../../agents/types.js";
 import type { WorkflowSkillRefIR, WorkflowToolRefIR, WorkflowMcpConfigIR } from "../../ir/types.js";
+import type { WorkflowPromptDisplayCoordinator } from "./types.js";
 
 /** PI 宿主适配器的构造选项。 */
 export interface PiHostAdapterOptions {
   readonly defaultModel?: string;
   readonly model?: any;
+  readonly terminalCoordinator?: WorkflowPromptDisplayCoordinator;
   readonly permissionCheck?: (capability: string, resource?: string) => Promise<{ allowed: boolean; reason?: string }> | { allowed: boolean; reason?: string };
   readonly nativeTools?: ReadonlyArray<{
     readonly name: string;
@@ -121,11 +123,9 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
   async requestUserInput(request: WorkflowInteractionRequest): Promise<WorkflowInteractionResult> {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
-      console.log(`\n[ask_user] ${request.question}`);
-      if (request.options?.length) {
-        request.options.forEach((option, index) => {
-          console.log(`  ${index + 1}. ${option}`);
-        });
+      this.options.terminalCoordinator?.beforePrompt(buildPromptLines(request));
+      if (!this.options.terminalCoordinator) {
+        buildPromptLines(request).forEach((line) => console.log(line));
       }
       const answer = await new Promise<string>((resolve) => rl.question("选择或输入: ", resolve));
       const normalized = answer.trim();
@@ -139,6 +139,7 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
       return { input: { approved, answer: selected, selected } };
     } finally {
       rl.close();
+      this.options.terminalCoordinator?.afterPrompt();
     }
   }
 
@@ -354,4 +355,15 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
       return { content: result.content, isError: result.isError };
     };
   }
+}
+
+function buildPromptLines(request: WorkflowInteractionRequest): readonly string[] {
+  const lines = [``, `[ask_user] ${request.question}`];
+  if (!request.options?.length) {
+    return lines;
+  }
+  return [
+    ...lines,
+    ...request.options.map((option, index) => `  ${index + 1}. ${option}`),
+  ];
 }

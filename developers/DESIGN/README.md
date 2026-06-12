@@ -10,6 +10,7 @@
 | 文档 | 说明 |
 |---|---|
 | [DESIGN_PI-AGENT-ASSEMBLY.md](./DESIGN_PI-AGENT-ASSEMBLY.md) | 将当前自定义 agent 重构为“PI 原生 Agent 装配 DSL”的定义文档；实现步骤见 `../PLANS/pi-workflow-phases/PLAN_PHASE-10_PI-AGENT-ASSEMBLY-IMPLEMENTATION.md` |
+| [DESIGN_PI-STUDIO-CONSOLE.md](./DESIGN_PI-STUDIO-CONSOLE.md) | `pi-studio` 宿主级控制台设计，定义产品入口、控制台 shell、`studio-console` 特殊 agent、slash command 与现有 CLI 的边界 |
 
 ---
 

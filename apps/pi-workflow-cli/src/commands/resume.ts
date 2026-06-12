@@ -45,6 +45,9 @@ export async function resumeCommand(args: string[]): Promise<void> {
     interactionInput,
     config: runtimeContext.config,
     title: state.workflowId,
+    display: {
+      showFinalOutput: args.includes("--debug"),
+    },
     loadRunState: (workflowRunId) => runtimeContext.store.loadRunState(workflowRunId),
   });
   if (result.exitCode !== 0) {

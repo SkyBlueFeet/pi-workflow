@@ -146,4 +146,43 @@ describe("PiHostAdapter requestUserInput", () => {
     expect(result.input["selected"]).toBe("允许一次");
     logSpy.mockRestore();
   });
+
+  it("提问前先通过协调器输出完整问题与选项", async () => {
+    const questionMock = vi.fn((_prompt: string, callback: (answer: string) => void) => callback("2"));
+    const closeMock = vi.fn();
+    const beforePromptMock = vi.fn();
+    const afterPromptMock = vi.fn();
+
+    vi.doMock("node:readline", () => ({
+      createInterface: () => ({
+        question: questionMock,
+        close: closeMock,
+      }),
+    }));
+
+    const { PiHostAdapter: ReloadedPiHostAdapter } = await import("../../../src/adapters/pi/pi-host-adapter.js?prompt-coordinator");
+    const adapter = new ReloadedPiHostAdapter({
+      terminalCoordinator: {
+        beforePrompt: beforePromptMock,
+        afterPrompt: afterPromptMock,
+      },
+    });
+
+    await adapter.requestUserInput({
+      nodeId: "n1",
+      interactionId: "n1/permission/network.request",
+      question: "是否允许网络访问？",
+      expectedFormat: "choice",
+      options: ["允许一次", "拒绝"],
+      required: true,
+    });
+
+    expect(beforePromptMock).toHaveBeenCalledWith([
+      "",
+      "[ask_user] 是否允许网络访问？",
+      "  1. 允许一次",
+      "  2. 拒绝",
+    ]);
+    expect(afterPromptMock).toHaveBeenCalled();
+  });
 });

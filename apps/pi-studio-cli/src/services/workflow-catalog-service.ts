@@ -37,7 +37,7 @@ export class WorkflowCatalogServiceImpl implements WorkflowCatalogService {
     return [];
   }
 
-  async get(id: string): Promise<WorkflowCatalogEntry | undefined> {
+  async get(_id: string): Promise<WorkflowCatalogEntry | undefined> {
     // TODO: 接入真实 workflow registry
     return undefined;
   }

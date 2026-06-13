@@ -84,8 +84,7 @@ export class WorkflowAuthoringServiceImpl implements WorkflowAuthoringService {
     if (!draft) {
       throw new Error(`草稿 ${draftId} 不存在`);
     }
-    draft.status as unknown as "confirmed";
-    // TODO: 接入真实的文件落盘流程
+    // TODO: 接入真实的文件落盘流程（含 status 更新）
     return draftId;
   }
 }

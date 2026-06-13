@@ -58,6 +58,8 @@ describe("isStudioCommand", () => {
     expect(isStudioCommand("/runs")).toBe(true);
     expect(isStudioCommand("/create-workflow")).toBe(true);
     expect(isStudioCommand("/create-agent")).toBe(true);
+    expect(isStudioCommand("/exit")).toBe(true);
+    expect(isStudioCommand("/quit")).toBe(true);
   });
 
   it("未知命令返回 false", () => {
@@ -78,7 +80,9 @@ describe("STUDIO_COMMANDS", () => {
     expect(STUDIO_COMMANDS).toContain("/runs");
     expect(STUDIO_COMMANDS).toContain("/create-workflow");
     expect(STUDIO_COMMANDS).toContain("/create-agent");
-    expect(STUDIO_COMMANDS).toHaveLength(9);
+    expect(STUDIO_COMMANDS).toContain("/exit");
+    expect(STUDIO_COMMANDS).toContain("/quit");
+    expect(STUDIO_COMMANDS).toHaveLength(11);
   });
 });
 
@@ -167,5 +171,21 @@ describe("command handlers", () => {
     const state = createInitialState();
     const result = handler(state, []);
     expect(result.state.view).toBe("runs");
+  });
+
+  it("/exit 返回 exit 信号", () => {
+    const router = createDefaultRouter();
+    const handler = router.get("/exit")!;
+    const state = createInitialState();
+    const result = handler(state, []);
+    expect(result.exit).toBe(true);
+  });
+
+  it("/quit 返回 exit 信号", () => {
+    const router = createDefaultRouter();
+    const handler = router.get("/quit")!;
+    const state = createInitialState();
+    const result = handler(state, []);
+    expect(result.exit).toBe(true);
   });
 });

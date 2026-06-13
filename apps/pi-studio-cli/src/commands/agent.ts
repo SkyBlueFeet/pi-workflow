@@ -13,6 +13,8 @@
 
 import type { AgentCatalogService } from "../services/agent-catalog-service.js";
 import type { AgentAuthoringService } from "../services/agent-authoring-service.js";
+import { AgentCatalogServiceImpl } from "../services/agent-catalog-service.js";
+import { AgentAuthoringServiceImpl } from "../services/agent-authoring-service.js";
 
 /** studio 控制台依赖的 agent 能力面。 */
 export interface StudioAgentFacade {
@@ -22,10 +24,6 @@ export interface StudioAgentFacade {
 
 /** 预留：创建默认的 agent facade 实现（后续阶段接入真实服务）。 */
 export function createAgentFacade(): StudioAgentFacade {
-  const { AgentCatalogServiceImpl } =
-    require("../services/agent-catalog-service.js") as typeof import("../services/agent-catalog-service.js");
-  const { AgentAuthoringServiceImpl } =
-    require("../services/agent-authoring-service.js") as typeof import("../services/agent-authoring-service.js");
   return {
     catalog: new AgentCatalogServiceImpl(),
     authoring: new AgentAuthoringServiceImpl(),

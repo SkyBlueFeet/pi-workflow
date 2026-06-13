@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx tsc:*)",
       "Bash(npx vitest:*)",
-      "Bash(npx pi-studio:*)"
+      "Bash(npx pi-studio:*)",
+      "mcp__codegraph__codegraph_search",
+      "Bash(git:*)"
     ]
   }
 }

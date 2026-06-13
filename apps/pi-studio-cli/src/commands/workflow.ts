@@ -13,6 +13,8 @@
 
 import type { WorkflowCatalogService } from "../services/workflow-catalog-service.js";
 import type { WorkflowAuthoringService } from "../services/workflow-authoring-service.js";
+import { WorkflowCatalogServiceImpl } from "../services/workflow-catalog-service.js";
+import { WorkflowAuthoringServiceImpl } from "../services/workflow-authoring-service.js";
 
 /** studio 控制台依赖的 workflow 能力面。 */
 export interface StudioWorkflowFacade {
@@ -22,10 +24,6 @@ export interface StudioWorkflowFacade {
 
 /** 预留：创建默认的 workflow facade 实现（后续阶段接入真实服务）。 */
 export function createWorkflowFacade(): StudioWorkflowFacade {
-  const { WorkflowCatalogServiceImpl } =
-    require("../services/workflow-catalog-service.js") as typeof import("../services/workflow-catalog-service.js");
-  const { WorkflowAuthoringServiceImpl } =
-    require("../services/workflow-authoring-service.js") as typeof import("../services/workflow-authoring-service.js");
   return {
     catalog: new WorkflowCatalogServiceImpl(),
     authoring: new WorkflowAuthoringServiceImpl(),

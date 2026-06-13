@@ -8,6 +8,7 @@
  */
 
 import type { StudioConsoleState } from "./studio-state.js";
+import pc from "picocolors";
 
 /** 控制台中注册的 slash command 名称。 */
 export const STUDIO_COMMANDS = [
@@ -20,6 +21,8 @@ export const STUDIO_COMMANDS = [
   "/runs",
   "/create-workflow",
   "/create-agent",
+  "/exit",
+  "/quit",
 ] as const;
 
 export type StudioCommand = (typeof STUDIO_COMMANDS)[number];
@@ -30,6 +33,8 @@ export interface CommandResult {
   state: StudioConsoleState;
   /** 可选的系统响应文本 */
   output?: string;
+  /** 是否退出 REPL 循环 */
+  exit?: boolean;
 }
 
 /** slash command 处理器函数类型。 */
@@ -82,6 +87,8 @@ export function createDefaultRouter(): CommandRouter {
   router.set("/runs", handleRuns);
   router.set("/create-workflow", handleCreateWorkflow);
   router.set("/create-agent", handleCreateAgent);
+  router.set("/exit", handleExit);
+  router.set("/quit", handleExit);
 
   return router;
 }
@@ -99,7 +106,27 @@ function handleHelp(state: StudioConsoleState): CommandResult {
   const next = navigateTo(state, "help");
   return {
     state: next,
+    output: renderHelpText(),
   };
+}
+
+function renderHelpText(): string {
+  const lines = [
+    `pi-studio 控制台 — 可用命令`,
+    "",
+    `  ${pc.cyan("/help")}             ${pc.dim("显示此帮助")}`,
+    `  ${pc.blue("/workflows")}         ${pc.dim("浏览已注册的工作流")}`,
+    `  ${pc.blue("/agents")}            ${pc.dim("浏览已注册的智能体")}`,
+    `  ${pc.blue("/skills")}            ${pc.dim("浏览可用的 Skill")}`,
+    `  ${pc.blue("/tools")}             ${pc.dim("浏览可用的 Tool")}`,
+    `  ${pc.blue("/resources")}         ${pc.dim("浏览可用的 Resource")}`,
+    `  ${pc.blue("/runs")}              ${pc.dim("浏览最近的运行记录")}`,
+    `  ${pc.yellow("/create-workflow")} ${pc.dim("创建新的 Workflow")}`,
+    `  ${pc.yellow("/create-agent")}    ${pc.dim("创建新的 Agent")}`,
+    "",
+    `  ${pc.cyan("/exit")}  ${pc.dim("/quit")}        ${pc.dim("退出控制台")}`,
+  ];
+  return lines.join("\n");
 }
 
 function handleWorkflows(state: StudioConsoleState): CommandResult {
@@ -213,4 +240,8 @@ function handleCreateAgent(state: StudioConsoleState): CommandResult {
     output:
       "请输入 Agent 描述（自然语言），或按 Ctrl+C 返回。此功能后续将接入 AI 生成链路。",
   };
+}
+
+function handleExit(state: StudioConsoleState): CommandResult {
+  return { state, exit: true };
 }

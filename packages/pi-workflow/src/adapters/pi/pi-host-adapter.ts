@@ -234,11 +234,26 @@ export class PiHostAdapter implements WorkflowPiHostCapabilities {
     let finalResult: WorkflowAgentResult = { output: null, content: "" };
 
     agent.subscribe((event) => {
-      if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-        eventQueue.push({ type: "agent.text_delta", delta: event.assistantMessageEvent.delta });
+      if (event.type === "message_update") {
+        const ame = event.assistantMessageEvent;
+        if (ame?.type === "text_delta") {
+          eventQueue.push({ type: "agent.text_delta", delta: ame.delta });
+        } else if (ame?.type === "thinking_delta") {
+          eventQueue.push({ type: "agent.unmapped", eventType: "thinking_delta", payload: { delta: ame.delta } });
+        } else if (ame?.type === "thinking_start") {
+          eventQueue.push({ type: "agent.unmapped", eventType: "thinking_start", payload: {} });
+        } else if (ame?.type === "thinking_end") {
+          eventQueue.push({ type: "agent.unmapped", eventType: "thinking_end", payload: { content: ame.content } });
+        } else if (ame && !["text_start", "text_end", "toolcall_start", "toolcall_delta", "toolcall_end", "start", "done", "error"].includes(ame.type)) {
+          // 未知的 assistantMessageEvent 类型
+          eventQueue.push({ type: "agent.unmapped", eventType: `message_update.${ame.type}`, payload: ame as unknown as Record<string, unknown> });
+        }
       }
       if (event.type === "tool_execution_start") {
         eventQueue.push({ type: "agent.tool_start", toolName: event.toolName });
+      }
+      if (event.type === "tool_execution_update") {
+        eventQueue.push({ type: "agent.unmapped", eventType: "tool_execution_update", payload: { toolName: event.toolName, toolCallId: event.toolCallId } });
       }
       if (event.type === "tool_execution_end") {
         eventQueue.push({ type: "agent.tool_end", toolName: event.toolName });

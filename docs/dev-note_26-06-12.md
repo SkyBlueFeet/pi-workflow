@@ -23,3 +23,13 @@
   - studio-console AI 助手需要接入真实的 agent invoker（目前为占位 handler）
   - `/create-workflow` 和 `/create-agent` 的 AI 生成链路需要后续阶段实现
   - pi-workflow-cli 的 bin 入口（pi-workflow / pi-agent）保持原有工程不变，pi-studio-cli 只提供 pi-studio 入口
+
+### 🕒 23:10 视觉风格对齐 + PI 运行时桥接
+
+- **任务详情**: 将控制台视觉风格从自定义 box-drawing 改为 PI 体系统一的 `[TAG]` 结构化日志风格；建立 PI 运行时桥接层；修复 npx 启动与状态管理 bug。
+- **核心逻辑**:
+  - **渲染器重写** (`studio-renderer.ts`): 采用 PI `WorkflowProgressRenderer` 同款风格 — `[studio]` cyan、`[catalog]` blue、`[create]` yellow、`[AI]` magenta、`▶`/`✓`/`✗`/`↳`/`?` 符号体系
+  - **PI 桥接** (`studio-pi-bridge.ts`): 封装 PI agent runtime 调用、PI display shell 渲染、工作流/agent 执行管线预留
+  - **Shell 更新**: 自然语言输入通过 `invokePiAssistant()` 处理（后续接入 CustomAgentInvoker），slash command 保持不变
+  - **Bug 修复**: cli.ts 移除 `isDirectCliEntry` 判断（Windows npx 包装器路径匹配失败），`handleCommand`/`handleAssistant` 改为返回新状态
+  - **Workspace 注册**: 根 `package.json` 添加 `apps/pi-studio-cli` 到 workspaces 列表

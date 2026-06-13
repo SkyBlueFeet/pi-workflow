@@ -1,15 +1,16 @@
 /**
- * pi-studio 宿主命令实现。
+ * pi-studio 宿主命令实现 — 基于 yargs。
  *
  * 职责：
  * 1. 默认输出 pi-studio help 信息
  * 2. --console 进入宿主级控制台
  */
 
+import yargs from "yargs";
 import { startStudioConsole } from "../console/studio-console-shell.js";
 
 /** pi-studio help 文案（已按照产品口径固化）。 */
-const STUDIO_HELP = `pi-studio
+export const STUDIO_HELP = `pi-studio
   产品级宿主入口
 
 用法:
@@ -27,19 +28,32 @@ const STUDIO_HELP = `pi-studio
 /**
  * studio 命令入口。
  *
- * @param args 命令行参数，不含命令名本身
+ * @param argv 命令行原始参数（不含 node 和脚本名）
  */
-export async function studioCommand(args: string[]): Promise<void> {
-  if (args.includes("--console")) {
+export async function studioCommand(argv: string[]): Promise<void> {
+  const y = yargs(argv)
+    .scriptName("pi-studio")
+    .usage(STUDIO_HELP)
+    .option("console", {
+      type: "boolean",
+      describe: "进入宿主级控制台",
+    })
+    .alias("h", "help")
+    .help()
+    .version(false)
+    .exitProcess(false)
+    .strict();
+
+  const args = await y.parse();
+
+  if (args.console) {
     await startStudioConsole();
     return;
   }
 
-  if (args.includes("--help") || args.includes("-h")) {
-    console.log(STUDIO_HELP.trim());
+  // 无参数时自动显示帮助（"log" 使输出到 stdout，与 yargs 内置 --help 一致）
+  if (argv.length === 0) {
+    y.showHelp("log");
     return;
   }
-
-  // 默认显示 help
-  console.log(STUDIO_HELP.trim());
 }

@@ -39,7 +39,7 @@ export class AgentCatalogServiceImpl implements AgentCatalogService {
     return [];
   }
 
-  async get(id: string): Promise<AgentCatalogEntry | undefined> {
+  async get(_id: string): Promise<AgentCatalogEntry | undefined> {
     // TODO: 接入真实 agent registry
     return undefined;
   }
